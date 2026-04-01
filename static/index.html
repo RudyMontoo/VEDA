@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VEDA — Venture Evaluation & Due Diligence Agent</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0a0e1a;
+  color: #f1f5f9;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+header {
+  background: linear-gradient(135deg, #0f172a, #1e1b4b);
+  border-bottom: 1px solid #1e2d45;
+  padding: 1.2rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo { font-size: 1.6rem; font-weight: 700; color: #3b82f6; letter-spacing: -0.5px; }
+.logo span { color: #06b6d4; }
+.tagline { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+
+.container { max-width: 960px; margin: 0 auto; padding: 2rem 1rem; }
+
+/* Form */
+.card {
+  background: #111827;
+  border: 1px solid #1e2d45;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.card h2 { font-size: 1.1rem; color: #94a3b8; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+.form-group.full { grid-column: 1 / -1; }
+
+label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+
+input, select, textarea {
+  background: #0a0e1a;
+  border: 1px solid #1e2d45;
+  border-radius: 8px;
+  color: #f1f5f9;
+  padding: 0.7rem 1rem;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+input:focus, select:focus { border-color: #3b82f6; }
+select option { background: #111827; }
+
+.btn {
+  background: linear-gradient(135deg, #3b82f6, #06b6d4);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.9rem 2rem;
+  width: 100%;
+  margin-top: 1rem;
+  transition: opacity 0.2s;
+}
+.btn:hover { opacity: 0.9; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Progress */
+#progress-section { display: none; }
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.progress-bar-outer {
+  background: #1e2d45;
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+.progress-bar-inner {
+  background: linear-gradient(90deg, #3b82f6, #06b6d4);
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease;
+  width: 0%;
+}
+
+.agent-steps { display: flex; flex-direction: column; gap: 0.8rem; }
+
+.agent-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background: #0a0e1a;
+  border: 1px solid #1e2d45;
+  transition: all 0.3s;
+}
+
+.agent-step.running { border-color: #3b82f6; background: #0f1f3d; }
+.agent-step.done    { border-color: #10b981; background: #0a1f16; }
+.agent-step.failed  { border-color: #ef4444; background: #1f0a0a; }
+
+.step-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1e2d45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.step-icon.running { background: #1e3a8a; animation: pulse 1.5s infinite; }
+.step-icon.done    { background: #065f46; }
+.step-icon.failed  { background: #7f1d1d; }
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+.step-content { flex: 1; }
+.step-name  { font-weight: 600; font-size: 0.95rem; }
+.step-msg   { font-size: 0.82rem; color: #64748b; margin-top: 0.3rem; }
+.step-score { font-size: 0.82rem; color: #06b6d4; margin-top: 0.3rem; }
+
+/* Results */
+#results-section { display: none; }
+
+.verdict-card {
+  background: linear-gradient(135deg, #0f1f3d, #0a1f16);
+  border: 1px solid #10b981;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.verdict-badge {
+  display: inline-block;
+  padding: 0.4rem 1.2rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.badge-proceed    { background: #065f46; color: #6ee7b7; }
+.badge-conditions { background: #78350f; color: #fcd34d; }
+.badge-avoid      { background: #7f1d1d; color: #fca5a5; }
+
+.verdict-text { font-size: 1.1rem; color: #e2e8f0; line-height: 1.6; }
+.verdict-oneliner { font-size: 0.9rem; color: #64748b; margin-top: 0.8rem; font-style: italic; }
+
+.scores-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.score-card {
+  background: #111827;
+  border: 1px solid #1e2d45;
+  border-radius: 10px;
+  padding: 1.2rem;
+  text-align: center;
+}
+
+.score-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+.score-value { font-size: 2rem; font-weight: 700; margin: 0.4rem 0; }
+.score-sub   { font-size: 0.75rem; color: #64748b; }
+
+.score-good   { color: #10b981; }
+.score-medium { color: #f59e0b; }
+.score-poor   { color: #ef4444; }
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.forecast-card {
+  background: #111827;
+  border: 1px solid #1e2d45;
+  border-radius: 10px;
+  padding: 1.2rem;
+}
+
+.forecast-label { font-size: 0.8rem; color: #64748b; margin-bottom: 0.8rem; text-transform: uppercase; }
+.forecast-arr   { font-size: 1.3rem; font-weight: 700; color: #3b82f6; }
+.forecast-sub   { font-size: 0.75rem; color: #64748b; margin-top: 0.3rem; }
+
+.forecast-card.bear { border-color: #ef4444; }
+.forecast-card.base { border-color: #f59e0b; }
+.forecast-card.bull { border-color: #10b981; }
+
+.btn-pdf {
+  background: linear-gradient(135deg, #7c3aed, #3b82f6);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.8rem 2rem;
+  margin-top: 0.5rem;
+  transition: opacity 0.2s;
+}
+.btn-pdf:hover { opacity: 0.9; }
+
+.job-id-text { font-size: 0.75rem; color: #64748b; margin-top: 0.5rem; }
+
+@media (max-width: 640px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .scores-grid { grid-template-columns: 1fr; }
+  .forecast-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">VE<span>DA</span></div>
+    <div class="tagline">Venture Evaluation & Due Diligence Agent</div>
+  </div>
+  <div style="font-size:0.8rem;color:#64748b;">Powered by Vertex AI · Gemini 2.5 Flash</div>
+</header>
+
+<div class="container">
+
+  <!-- Input Form -->
+  <div class="card" id="form-section">
+    <h2>🔍 Start Due Diligence Audit</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Company Name</label>
+        <input type="text" id="company_name" placeholder="e.g. TechStartup Pvt Ltd" />
+      </div>
+      <div class="form-group">
+        <label>Industry</label>
+        <select id="industry">
+          <option value="saas">SaaS</option>
+          <option value="fintech">Fintech</option>
+          <option value="healthtech">Healthtech</option>
+          <option value="edtech">Edtech</option>
+          <option value="ecommerce">E-Commerce</option>
+          <option value="deeptech">Deeptech</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>GitHub Repository URL</label>
+        <input type="text" id="github_url" placeholder="https://github.com/owner/repo" />
+      </div>
+      <div class="form-group full">
+        <label>Company Description (optional)</label>
+        <input type="text" id="description" placeholder="Brief description of the company" />
+      </div>
+    </div>
+    <button class="btn" id="start-btn" onclick="startAudit()">
+      🚀 Start VEDA Audit
+    </button>
+  </div>
+
+  <!-- Live Progress -->
+  <div class="card" id="progress-section">
+    <div class="progress-header">
+      <h2>⚡ Live Agent Progress</h2>
+      <span id="progress-pct" style="color:#3b82f6;font-weight:700;">0%</span>
+    </div>
+    <div class="progress-bar-outer">
+      <div class="progress-bar-inner" id="progress-bar"></div>
+    </div>
+    <div class="agent-steps">
+      <div class="agent-step" id="step-1">
+        <div class="step-icon" id="icon-1">🔍</div>
+        <div class="step-content">
+          <div class="step-name">Code Auditor</div>
+          <div class="step-msg" id="msg-1">Waiting to start...</div>
+          <div class="step-score" id="score-1"></div>
+        </div>
+      </div>
+      <div class="agent-step" id="step-2">
+        <div class="step-icon" id="icon-2">📋</div>
+        <div class="step-content">
+          <div class="step-name">Regulatory Scout</div>
+          <div class="step-msg" id="msg-2">Waiting to start...</div>
+          <div class="step-score" id="score-2"></div>
+        </div>
+      </div>
+      <div class="agent-step" id="step-3">
+        <div class="step-icon" id="icon-3">📈</div>
+        <div class="step-content">
+          <div class="step-name">Market Analyst</div>
+          <div class="step-msg" id="msg-3">Waiting to start...</div>
+          <div class="step-score" id="score-3"></div>
+        </div>
+      </div>
+      <div class="agent-step" id="step-4">
+        <div class="step-icon" id="icon-4">📝</div>
+        <div class="step-content">
+          <div class="step-name">Executive Summary</div>
+          <div class="step-msg" id="msg-4">Waiting to start...</div>
+          <div class="step-score" id="score-4"></div>
+        </div>
+      </div>
+    </div>
+    <div class="job-id-text" id="job-id-display"></div>
+  </div>
+
+  <!-- Results -->
+  <div id="results-section">
+
+    <div class="verdict-card" id="verdict-card">
+      <div class="verdict-badge" id="verdict-badge">ANALYZING...</div>
+      <div class="verdict-text" id="verdict-text"></div>
+      <div class="verdict-oneliner" id="verdict-oneliner"></div>
+    </div>
+
+    <div class="scores-grid">
+      <div class="score-card">
+        <div class="score-label">Tech Debt Score</div>
+        <div class="score-value" id="score-tech">—</div>
+        <div class="score-sub">/ 100</div>
+      </div>
+      <div class="score-card">
+        <div class="score-label">Compliance Score</div>
+        <div class="score-value" id="score-compliance">—</div>
+        <div class="score-sub">/ 100</div>
+      </div>
+      <div class="score-card">
+        <div class="score-label">Overall Risk Score</div>
+        <div class="score-value" id="score-risk">—</div>
+        <div class="score-sub">/ 100</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📈 3-Year Growth Forecast</h2>
+      <div class="forecast-grid" id="forecast-grid"></div>
+    </div>
+
+    <div style="text-align:center;margin-top:1rem;">
+      <button class="btn-pdf" id="pdf-btn" onclick="downloadPDF()">
+        📄 Download Full PDF Report
+      </button>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+let currentJobId = null;
+let ws = null;
+
+async function startAudit() {
+  const company  = document.getElementById('company_name').value.trim();
+  const github   = document.getElementById('github_url').value.trim();
+  const industry = document.getElementById('industry').value;
+  const desc     = document.getElementById('description').value.trim();
+
+  if (!company || !github) {
+    alert('Please fill in Company Name and GitHub URL');
+    return;
+  }
+
+  document.getElementById('start-btn').disabled = true;
+  document.getElementById('start-btn').textContent = '⏳ Starting audit...';
+
+  try {
+    const resp = await fetch('/audit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        company_name:    company,
+        github_repo_url: github,
+        industry:        industry,
+        description:     desc,
+      })
+    });
+
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    currentJobId = data.job_id;
+
+    document.getElementById('form-section').style.display = 'none';
+    document.getElementById('progress-section').style.display = 'block';
+    document.getElementById('job-id-display').textContent = `Job ID: ${currentJobId}`;
+
+    connectWebSocket(currentJobId);
+
+  } catch (err) {
+    alert(`Error starting audit: ${err.message}`);
+    document.getElementById('start-btn').disabled = false;
+    document.getElementById('start-btn').textContent = '🚀 Start VEDA Audit';
+  }
+}
+
+function connectWebSocket(jobId) {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}/ws/${jobId}`);
+
+  ws.onmessage = (e) => {
+    const event = JSON.parse(e.data);
+    handleEvent(event);
+  };
+
+  ws.onerror = () => console.error('WebSocket error');
+  ws.onclose = () => console.log('WebSocket closed');
+
+  // Keep alive ping
+  setInterval(() => { if (ws.readyState === 1) ws.send('ping'); }, 25000);
+}
+
+function handleEvent(event) {
+  const { step, status, message, data, progress_pct, agent } = event;
+
+  // Update progress bar
+  document.getElementById('progress-bar').style.width = progress_pct + '%';
+  document.getElementById('progress-pct').textContent = progress_pct + '%';
+
+  if (step >= 1 && step <= 4) {
+    const stepEl  = document.getElementById(`step-${step}`);
+    const iconEl  = document.getElementById(`icon-${step}`);
+    const msgEl   = document.getElementById(`msg-${step}`);
+    const scoreEl = document.getElementById(`score-${step}`);
+
+    stepEl.className = `agent-step ${status.toLowerCase() === 'running' ? 'running' : status.toLowerCase() === 'done' ? 'done' : ''}`;
+    iconEl.className = `step-icon ${status.toLowerCase() === 'running' ? 'running' : status.toLowerCase() === 'done' ? 'done' : ''}`;
+    msgEl.textContent = message;
+
+    if (status === 'DONE' && data) {
+      if (data.tech_debt_score)   scoreEl.textContent = `Tech Debt Score: ${data.tech_debt_score}/100`;
+      if (data.compliance_score)  scoreEl.textContent = `Compliance Score: ${data.compliance_score}/100`;
+      if (data.market_fit_score)  scoreEl.textContent = `Market Fit: ${data.market_fit_score}/100`;
+      if (data.recommendation)    scoreEl.textContent = `Verdict: ${data.recommendation}`;
+    }
+  }
+
+  if (status === 'COMPLETED') {
+    setTimeout(() => showResults(data), 1000);
+  }
+}
+
+async function showResults(summaryData) {
+  document.getElementById('results-section').style.display = 'block';
+
+  // Fetch full report
+  try {
+    const resp   = await fetch(`/report/${currentJobId}`);
+    const report = await resp.json();
+    renderReport(report, summaryData);
+  } catch (e) {
+    renderReport(null, summaryData);
+  }
+}
+
+function renderReport(report, summary) {
+  const rec = summary?.recommendation || report?.executive_summary?.recommendation || '';
+
+  // Verdict
+  const badge = document.getElementById('verdict-badge');
+  badge.textContent = rec;
+  badge.className = 'verdict-badge ' + (
+    rec.includes('PROCEED WITH') ? 'badge-conditions' :
+    rec.includes('DO NOT')       ? 'badge-avoid' :
+                                   'badge-proceed'
+  );
+
+  document.getElementById('verdict-text').textContent =
+    report?.executive_summary?.executive_summary || summary?.one_line_verdict || '';
+  document.getElementById('verdict-oneliner').textContent =
+    summary?.one_line_verdict || '';
+
+  // Scores
+  const tech  = report?.code_audit?.tech_debt_score;
+  const comp  = report?.regulatory?.compliance_score;
+  const risk  = summary?.overall_risk_score || report?.overall_risk_score;
+
+  setScore('score-tech',       tech);
+  setScore('score-compliance', comp);
+  setScore('score-risk',       risk);
+
+  // Forecast
+  const scenarios = report?.market_forecast?.scenarios || {};
+  const fg = document.getElementById('forecast-grid');
+  fg.innerHTML = '';
+
+  ['bear', 'base', 'bull'].forEach(s => {
+    const sc = scenarios[s];
+    if (!sc) return;
+    fg.innerHTML += `
+      <div class="forecast-card ${s}">
+        <div class="forecast-label">${s.toUpperCase()} Case — ${sc.probability || ''}</div>
+        <div class="forecast-arr">₹${sc.year3_arr_inr_lakhs || 0}L ARR</div>
+        <div class="forecast-sub">Year 3 · ${sc.year3_headcount || 0} people</div>
+        <div class="forecast-sub" style="margin-top:0.5rem;">${sc.key_risk || sc.key_driver || ''}</div>
+      </div>`;
+  });
+}
+
+function setScore(id, val) {
+  const el = document.getElementById(id);
+  if (val === undefined || val === null) return;
+  el.textContent = Math.round(val);
+  el.className = 'score-value ' + (val >= 70 ? 'score-good' : val >= 40 ? 'score-medium' : 'score-poor');
+}
+
+function downloadPDF() {
+  if (!currentJobId) return;
+  window.open(`/report/${currentJobId}/pdf`, '_blank');
+}
+</script>
+</body>
+</html>
