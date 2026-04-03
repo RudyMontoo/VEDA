@@ -178,7 +178,100 @@ def get_industry_breakdown():
     """Industry breakdown for analytics dashboard."""
     return bq.get_industry_breakdown()
 
+@app.post("/compare")
+async def compare_companies(background_tasks: BackgroundTasks,
+    company1_name: str = "",
+    company1_url: str = "",
+    company2_name: str = "",
+    company2_url: str = "",
+    industry: str = "saas"):
+    
+    job1_id = str(uuid.uuid4())
+    job2_id = str(uuid.uuid4())
+    created_at = datetime.utcnow().isoformat()
 
+    bq.create_job(job1_id, {
+        "company_name": company1_name,
+        "github_repo_url": company1_url,
+        "industry": industry,
+        "description": ""
+    }, created_at)
+
+    bq.create_job(job2_id, {
+        "company_name": company2_name,
+        "github_repo_url": company2_url,
+        "industry": industry,
+        "description": ""
+    }, created_at)
+
+    background_tasks.add_task(
+        agent.run_full_audit,
+        job_id=job1_id,
+        company_name=company1_name,
+        github_repo_url=company1_url,
+        industry=industry,
+        description="",
+        schedule_meeting=False,
+        attendee_email=""
+    )
+
+    background_tasks.add_task(
+        agent.run_full_audit,
+        job_id=job2_id,
+        company_name=company2_name,
+        github_repo_url=company2_url,
+        industry=industry,
+        description="",
+        schedule_meeting=False,
+        attendee_email=""
+    )
+
+    return {
+        "job1_id": job1_id,
+        "job2_id": job2_id,
+        "status": "RUNNING",
+        "message": "Both audits started. Poll /compare/result for results."
+    }
+
+
+@app.get("/compare/result")
+def compare_result(job1_id: str, job2_id: str):
+    report1 = bq.get_report(job1_id)
+    report2 = bq.get_report(job2_id)
+    job1 = bq.get_job(job1_id)
+    job2 = bq.get_job(job2_id)
+
+    if not report1 or not report2:
+        return {
+            "status": "PENDING",
+            "job1_status": job1.get("status") if job1 else "UNKNOWN",
+            "job2_status": job2.get("status") if job2 else "UNKNOWN",
+        }
+
+    score1 = report1.get("overall_risk_score", 0) or 0
+    score2 = report2.get("overall_risk_score", 0) or 0
+    winner = report1.get("company_name") if score1 >= score2 else report2.get("company_name")
+
+    return {
+        "status": "COMPLETED",
+        "winner": winner,
+        "company1": {
+            "name": report1.get("company_name"),
+            "overall_risk_score": score1,
+            "tech_debt": report1.get("code_audit", {}).get("tech_debt_score"),
+            "compliance": report1.get("regulatory", {}).get("compliance_score"),
+            "market_fit": report1.get("market_forecast", {}).get("market_fit_score"),
+            "recommendation": report1.get("executive_summary", {}).get("recommendation"),
+        },
+        "company2": {
+            "name": report2.get("company_name"),
+            "overall_risk_score": score2,
+            "tech_debt": report2.get("code_audit", {}).get("tech_debt_score"),
+            "compliance": report2.get("regulatory", {}).get("compliance_score"),
+            "market_fit": report2.get("market_forecast", {}).get("market_fit_score"),
+            "recommendation": report2.get("executive_summary", {}).get("recommendation"),
+        }
+    }
 @app.get("/report/{job_id}/pdf")
 def get_pdf_report(job_id: str):
     bq = BigQueryClient()
