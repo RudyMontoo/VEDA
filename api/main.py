@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel
 from typing import Optional
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse 
 from utils.pdf_generator import generate_pdf
 import io
 from agents.primary_agent import PrimaryAgent
@@ -284,3 +284,58 @@ def get_pdf_report(job_id: str):
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=VEDA-{job_id[:8]}.pdf"}
     )
+
+# ── ADD THESE ROUTES TO api/main.py ──────────────────────────────────────────
+# They proxy /mcp/* calls from the browser to the MCP server
+# This fixes the CORS issue where browser can't call localhost:8001 directly
+#
+# Paste these routes BEFORE the last route in api/main.py
+# ─────────────────────────────────────────────────────────────────────────────
+
+import httpx as _httpx
+from fastapi import Request as _Request
+from fastapi.responses import JSONResponse as _JSONResponse
+
+MCP_BASE = "http://localhost:8001"
+
+@app.get("/mcp/tasks/list")
+async def proxy_tasks_list():
+    """Proxy: browser → VEDA API → MCP server (avoids CORS)"""
+    try:
+        async with _httpx.AsyncClient() as client:
+            resp = await client.get(f"{MCP_BASE}/tasks/list", timeout=10)
+            return _JSONResponse(resp.json())
+    except Exception as e:
+        return _JSONResponse({"tasks": [], "error": str(e)})
+
+@app.post("/mcp/tasks/create")
+async def proxy_tasks_create(request: _Request):
+    """Proxy: browser → VEDA API → MCP server"""
+    try:
+        body = await request.json()
+        async with _httpx.AsyncClient() as client:
+            resp = await client.post(f"{MCP_BASE}/tasks/create", json=body, timeout=15)
+            return _JSONResponse(resp.json())
+    except Exception as e:
+        return _JSONResponse({"created": False, "error": str(e)})
+
+@app.get("/mcp/calendar/upcoming")
+async def proxy_calendar_upcoming():
+    """Proxy: browser → VEDA API → MCP server"""
+    try:
+        async with _httpx.AsyncClient() as client:
+            resp = await client.get(f"{MCP_BASE}/calendar/upcoming", timeout=10)
+            return _JSONResponse(resp.json())
+    except Exception as e:
+        return _JSONResponse({"meetings": [], "error": str(e)})
+
+@app.post("/mcp/calendar/schedule")
+async def proxy_calendar_schedule(request: _Request):
+    """Proxy: browser → VEDA API → MCP server"""
+    try:
+        body = await request.json()
+        async with _httpx.AsyncClient() as client:
+            resp = await client.post(f"{MCP_BASE}/calendar/schedule", json=body, timeout=15)
+            return _JSONResponse(resp.json())
+    except Exception as e:
+        return _JSONResponse({"scheduled": False, "error": str(e)})
