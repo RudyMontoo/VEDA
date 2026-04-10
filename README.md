@@ -24,7 +24,10 @@
 - ✅ Deploy as an API-based system
 
 ---
-
+## 💡 Deployment Link
+-https://veda-api-790567978781.us-central1.run.app/
+---
+---
 ## 💡 Solution: VEDA
 
 VEDA is an **Agentic M&A Due Diligence Suite** that automates the entire due diligence process for Mergers & Acquisitions using 4 specialised AI agents coordinated by a Primary Orchestrator Agent.
