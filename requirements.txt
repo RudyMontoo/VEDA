@@ -11,3 +11,7 @@ reportlab
 google-api-python-client
 google-auth
 google-auth-httplib2
+authlib
+itsdangerous
+starlette
+python-multipart

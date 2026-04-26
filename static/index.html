@@ -8,15 +8,18 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #0a0e1a; color: #f1f5f9; font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
-header { background: linear-gradient(135deg, #0f172a, #1e1b4b); border-bottom: 1px solid #1e2d45; padding: 1.2rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+header { background: linear-gradient(135deg, #0f172a, #1e1b4b); border-bottom: 1px solid #1e2d45; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
 .logo { font-size: 1.6rem; font-weight: 700; color: #3b82f6; letter-spacing: -0.5px; }
 .logo span { color: #06b6d4; }
 .tagline { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
 .header-actions { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.header-actions span { font-size: 0.8rem; color: #64748b; }
+.user-pill { display: flex; align-items: center; gap: 0.5rem; background: #1e2d45; border-radius: 999px; padding: 0.3rem 0.8rem 0.3rem 0.3rem; font-size: 0.82rem; color: #e2e8f0; }
+.user-pill img { width: 24px; height: 24px; border-radius: 50%; }
 .btn-nav { background: none; border: 1px solid #3b82f6; color: #3b82f6; padding: 0.35rem 0.9rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
 .btn-nav:hover { background: #3b82f6; color: white; }
 .btn-nav.active { background: #3b82f6; color: white; }
+.btn-logout { background: none; border: 1px solid #ef4444; color: #ef4444; padding: 0.35rem 0.9rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; text-decoration: none; transition: all 0.2s; }
+.btn-logout:hover { background: #ef4444; color: white; }
 .container { max-width: 980px; margin: 0 auto; padding: 2rem 1rem; }
 .card { background: #111827; border: 1px solid #1e2d45; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; }
 .card h2 { font-size: 1.1rem; color: #94a3b8; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
@@ -24,7 +27,7 @@ header { background: linear-gradient(135deg, #0f172a, #1e1b4b); border-bottom: 1
 .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
 .form-group.full { grid-column: 1 / -1; }
 label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-input, select, textarea { background: #0a0e1a; border: 1px solid #1e2d45; border-radius: 8px; color: #f1f5f9; padding: 0.7rem 1rem; font-size: 0.95rem; outline: none; transition: border-color 0.2s; width: 100%; }
+input, select { background: #0a0e1a; border: 1px solid #1e2d45; border-radius: 8px; color: #f1f5f9; padding: 0.7rem 1rem; font-size: 0.95rem; outline: none; transition: border-color 0.2s; width: 100%; }
 input:focus, select:focus { border-color: #3b82f6; }
 select option { background: #111827; }
 .btn { background: linear-gradient(135deg, #3b82f6, #06b6d4); border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 1rem; font-weight: 600; padding: 0.9rem 2rem; width: 100%; margin-top: 1rem; transition: opacity 0.2s; }
@@ -77,14 +80,28 @@ select option { background: #111827; }
 .forecast-sub   { font-size: 0.75rem; color: #64748b; margin-top: 0.3rem; }
 .btn-pdf { background: linear-gradient(135deg, #7c3aed, #3b82f6); border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 0.95rem; font-weight: 600; padding: 0.8rem 2rem; margin-top: 0.5rem; transition: opacity 0.2s; }
 .btn-pdf:hover { opacity: 0.9; }
-/* Tasks Panel */
+/* Competitor Panel */
+.competitor-panel { background: #111827; border: 1px solid #7c3aed; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+.competitor-panel h3 { font-size: 0.85rem; color: #a78bfa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; font-weight: 500; }
+.competitor-position { display: inline-block; padding: 0.3rem 0.9rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; margin-bottom: 1rem; background: #1e1b4b; color: #a78bfa; }
+.competitor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem; }
+.competitor-card { background: #0a0e1a; border: 1px solid #1e2d45; border-radius: 10px; padding: 1rem; }
+.competitor-name { font-weight: 700; font-size: 0.9rem; color: #e2e8f0; margin-bottom: 0.5rem; }
+.competitor-stat { display: flex; justify-content: space-between; font-size: 0.78rem; padding: 0.25rem 0; border-bottom: 1px solid #1e2d45; }
+.competitor-stat:last-child { border-bottom: none; }
+.competitor-stat-label { color: #64748b; }
+.competitor-stat-value { color: #06b6d4; font-weight: 600; }
+.threat-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; margin-top: 0.5rem; }
+.threat-low    { background: #065f46; color: #6ee7b7; }
+.threat-medium { background: #78350f; color: #fcd34d; }
+.threat-high   { background: #7f1d1d; color: #fca5a5; }
+/* Tasks */
 .tasks-panel { background: #111827; border: 1px solid #1e2d45; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
 .tasks-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; }
 .tasks-header h3 { font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
 .tasks-count { background: #1e3a8a; color: #93c5fd; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; }
-.task-item { display: flex; align-items: center; gap: 12px; padding: 0.75rem 0.5rem; border-bottom: 1px solid #1e2d45; transition: background 0.2s; border-radius: 6px; }
+.task-item { display: flex; align-items: center; gap: 12px; padding: 0.75rem 0.5rem; border-bottom: 1px solid #1e2d45; border-radius: 6px; }
 .task-item:last-child { border-bottom: none; }
-.task-item:hover { background: #0a0e1a; }
 .task-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .task-dot.urgent { background: #ef4444; }
 .task-dot.soon   { background: #f59e0b; }
@@ -112,7 +129,6 @@ select option { background: #111827; }
 .winner-banner { text-align: center; padding: 1.2rem; margin-bottom: 1.5rem; border-radius: 10px; background: linear-gradient(135deg, #0f1f3d, #0a1f16); border: 1px solid #10b981; }
 .winner-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
 .winner-name  { font-size: 1.6rem; font-weight: 700; color: #10b981; margin-top: 0.3rem; }
-/* Upcoming items */
 .upcoming-item { display: flex; gap: 1rem; align-items: flex-start; background: #0a0e1a; border: 1px solid #1e2d45; border-radius: 8px; padding: 0.9rem 1rem; margin-bottom: 0.5rem; }
 .upcoming-date { text-align: center; min-width: 44px; }
 .upcoming-day  { font-size: 1.4rem; font-weight: 700; color: #3b82f6; line-height: 1; }
@@ -121,10 +137,10 @@ select option { background: #111827; }
 .upcoming-title { font-size: 0.88rem; font-weight: 600; color: #e2e8f0; }
 .upcoming-sub   { font-size: 0.75rem; color: #64748b; margin-top: 0.2rem; }
 @media (max-width: 640px) {
-  .form-grid, .scores-grid, .forecast-grid, .chart-grid, .compare-grid { grid-template-columns: 1fr; }
+  .form-grid, .scores-grid, .forecast-grid, .chart-grid, .compare-grid, .competitor-grid { grid-template-columns: 1fr; }
   .task-form-grid { grid-template-columns: 1fr 1fr; }
-  .task-form-grid .btn-add-task { grid-column: 1 / -1; }
-  .header-actions span { display: none; }
+  .task-form-grid .btn-add-task { grid-column: 1/-1; }
+  .header-actions .user-pill span { display: none; }
 }
 </style>
 </head>
@@ -136,26 +152,27 @@ select option { background: #111827; }
     <div class="tagline">Venture Evaluation & Due Diligence Agent</div>
   </div>
   <div class="header-actions">
-    <span>Powered by Vertex AI · Gemini 2.5 Flash</span>
+    <div class="user-pill" id="user-pill" style="display:none;">
+      <img id="user-avatar" src="" alt=""/>
+      <span id="user-name"></span>
+    </div>
     <button class="btn-nav active" id="nav-audit"   onclick="showPage('audit')">🔍 Audit</button>
     <button class="btn-nav"        id="nav-compare" onclick="showPage('compare')">⚖️ Compare</button>
     <button class="btn-nav"        id="nav-tasks"   onclick="showPage('tasks')">📋 Tasks</button>
+    <a class="btn-logout" href="/auth/logout">⏏ Logout</a>
   </div>
 </header>
 
 <div class="container">
 
-<!-- ══════════════════════════════════════════════════════════
-     AUDIT PAGE
-══════════════════════════════════════════════════════════ -->
+<!-- AUDIT PAGE -->
 <div id="audit-page">
-
   <div class="card" id="form-section">
     <h2>🔍 Start Due Diligence Audit</h2>
     <div class="form-grid">
       <div class="form-group">
         <label>Company Name</label>
-        <input type="text" id="company_name" placeholder="e.g. TechStartup Pvt Ltd" />
+        <input type="text" id="company_name" placeholder="e.g. TechStartup Pvt Ltd"/>
       </div>
       <div class="form-group">
         <label>Industry</label>
@@ -170,21 +187,21 @@ select option { background: #111827; }
       </div>
       <div class="form-group full">
         <label>GitHub Repository URL</label>
-        <input type="text" id="github_url" placeholder="https://github.com/owner/repo" />
+        <input type="text" id="github_url" placeholder="https://github.com/owner/repo"/>
       </div>
       <div class="form-group full">
         <label>Company Description (optional)</label>
-        <input type="text" id="description" placeholder="Brief description of the company" />
+        <input type="text" id="description" placeholder="Brief description of the company"/>
       </div>
       <div class="form-group full" style="background:#0a0e1a;border:1px solid #1e2d45;border-radius:8px;padding:1rem;">
         <div style="display:flex;align-items:center;gap:0.8rem;">
-          <input type="checkbox" id="schedule_meeting" style="width:18px;height:18px;cursor:pointer;" />
+          <input type="checkbox" id="schedule_meeting" style="width:18px;height:18px;cursor:pointer;"/>
           <label style="text-transform:none;font-size:0.9rem;color:#f1f5f9;cursor:pointer;" for="schedule_meeting">
             📅 Auto-schedule kickoff meeting in Google Calendar after audit
           </label>
         </div>
         <div id="meeting-fields" style="display:none;margin-top:0.8rem;">
-          <input type="email" id="attendee_email" placeholder="Attendee email (optional)" />
+          <input type="email" id="attendee_email" placeholder="Attendee email (optional)"/>
         </div>
       </div>
     </div>
@@ -198,10 +215,11 @@ select option { background: #111827; }
     </div>
     <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-bar"></div></div>
     <div class="agent-steps">
-      <div class="agent-step" id="step-1"><div class="step-icon" id="icon-1">🔍</div><div class="step-content"><div class="step-name">Code Auditor</div><div class="step-msg" id="msg-1">Waiting to start...</div><div class="step-score" id="score-1"></div></div></div>
-      <div class="agent-step" id="step-2"><div class="step-icon" id="icon-2">📋</div><div class="step-content"><div class="step-name">Regulatory Scout</div><div class="step-msg" id="msg-2">Waiting to start...</div><div class="step-score" id="score-2"></div></div></div>
-      <div class="agent-step" id="step-3"><div class="step-icon" id="icon-3">📈</div><div class="step-content"><div class="step-name">Market Analyst</div><div class="step-msg" id="msg-3">Waiting to start...</div><div class="step-score" id="score-3"></div></div></div>
-      <div class="agent-step" id="step-4"><div class="step-icon" id="icon-4">📝</div><div class="step-content"><div class="step-name">Executive Summary</div><div class="step-msg" id="msg-4">Waiting to start...</div><div class="step-score" id="score-4"></div></div></div>
+      <div class="agent-step" id="step-1"><div class="step-icon" id="icon-1">🔍</div><div class="step-content"><div class="step-name">Code Auditor</div><div class="step-msg" id="msg-1">Waiting...</div><div class="step-score" id="score-1"></div></div></div>
+      <div class="agent-step" id="step-2"><div class="step-icon" id="icon-2">📋</div><div class="step-content"><div class="step-name">Regulatory Scout</div><div class="step-msg" id="msg-2">Waiting...</div><div class="step-score" id="score-2"></div></div></div>
+      <div class="agent-step" id="step-3"><div class="step-icon" id="icon-3">📈</div><div class="step-content"><div class="step-name">Market Analyst</div><div class="step-msg" id="msg-3">Waiting...</div><div class="step-score" id="score-3"></div></div></div>
+      <div class="agent-step" id="step-4"><div class="step-icon" id="icon-4">📝</div><div class="step-content"><div class="step-name">Executive Summary</div><div class="step-msg" id="msg-4">Waiting...</div><div class="step-score" id="score-4"></div></div></div>
+      <div class="agent-step" id="step-5"><div class="step-icon" id="icon-5">🕵️</div><div class="step-content"><div class="step-name">Competitor Intelligence</div><div class="step-msg" id="msg-5">Runs after audit completes...</div><div class="step-score" id="score-5"></div></div></div>
     </div>
     <div class="job-id-text" id="job-id-display"></div>
   </div>
@@ -212,17 +230,30 @@ select option { background: #111827; }
       <div class="verdict-text" id="verdict-text"></div>
       <div class="verdict-oneliner" id="verdict-oneliner"></div>
     </div>
+
     <div class="scores-grid">
       <div class="score-card"><div class="score-label">Tech Debt Score</div><div class="score-value" id="score-tech">—</div><div class="score-sub">/ 100</div></div>
       <div class="score-card"><div class="score-label">Compliance Score</div><div class="score-value" id="score-compliance">—</div><div class="score-sub">/ 100</div></div>
       <div class="score-card"><div class="score-label">Overall Risk Score</div><div class="score-value" id="score-risk">—</div><div class="score-sub">/ 100</div></div>
     </div>
+
     <div class="chart-grid" id="chart-section" style="display:none;">
       <div class="chart-box"><h3>📊 Risk Radar Analysis</h3><canvas id="radarChart"></canvas></div>
       <div class="chart-box"><h3>📈 3-Year ARR Forecast</h3><canvas id="barChart"></canvas></div>
     </div>
+
     <div class="card"><h2>📈 3-Year Growth Forecast</h2><div class="forecast-grid" id="forecast-grid"></div></div>
 
+    <!-- Agent 5: Competitor Intelligence Panel -->
+    <div class="competitor-panel" id="competitor-panel" style="display:none;">
+      <h3>🕵️ Competitor Intelligence</h3>
+      <div id="competitor-position-badge" class="competitor-position"></div>
+      <p id="competitor-summary" style="font-size:0.85rem;color:#94a3b8;line-height:1.6;margin-bottom:0.5rem;"></p>
+      <p id="competitor-rationale" style="font-size:0.82rem;color:#64748b;font-style:italic;"></p>
+      <div class="competitor-grid" id="competitor-grid"></div>
+    </div>
+
+    <!-- Tasks Panel -->
     <div class="tasks-panel" id="tasks-panel" style="display:none;">
       <div class="tasks-header">
         <h3>📋 Due Diligence Checklist — Google Calendar</h3>
@@ -232,9 +263,9 @@ select option { background: #111827; }
       <div class="add-task-form">
         <h4>➕ Add Custom Task to Google Calendar</h4>
         <div class="task-form-grid">
-          <div class="form-group" style="margin:0;"><label>Task Title</label><input type="text" id="new-task-title" placeholder="e.g. Review IP agreements" /></div>
-          <div class="form-group" style="margin:0;"><label>Due Date</label><input type="date" id="new-task-date" /></div>
-          <div class="form-group" style="margin:0;"><label>Time</label><input type="time" id="new-task-time" /></div>
+          <div class="form-group" style="margin:0;"><label>Task Title</label><input type="text" id="new-task-title" placeholder="e.g. Review IP agreements"/></div>
+          <div class="form-group" style="margin:0;"><label>Due Date</label><input type="date" id="new-task-date"/></div>
+          <div class="form-group" style="margin:0;"><label>Time</label><input type="time" id="new-task-time"/></div>
           <div class="form-group" style="margin:0;"><label>&nbsp;</label><button class="btn-add-task" id="add-task-btn" onclick="addCustomTask()">📅 Add</button></div>
         </div>
         <div class="task-success" id="task-success">✅ Task added to Google Calendar!</div>
@@ -246,26 +277,22 @@ select option { background: #111827; }
       <button class="btn-pdf" onclick="downloadPDF()">📄 Download Full PDF Report</button>
     </div>
   </div>
+</div>
 
-</div><!-- /audit-page -->
-
-<!-- ══════════════════════════════════════════════════════════
-     COMPARE PAGE  — NO display:none on inner card
-══════════════════════════════════════════════════════════ -->
+<!-- COMPARE PAGE -->
 <div id="compare-page" style="display:none;">
-
   <div class="card" id="compare-form-card">
     <h2>⚖️ Compare Two Companies</h2>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
       <div>
         <div style="font-size:0.8rem;color:#3b82f6;font-weight:700;margin-bottom:0.8rem;">COMPANY 1</div>
-        <div class="form-group" style="margin-bottom:0.8rem;"><label>Company Name</label><input type="text" id="c1_name" placeholder="e.g. FastAPI" /></div>
-        <div class="form-group"><label>GitHub URL</label><input type="text" id="c1_url" placeholder="https://github.com/tiangolo/fastapi" /></div>
+        <div class="form-group" style="margin-bottom:0.8rem;"><label>Company Name</label><input type="text" id="c1_name" placeholder="e.g. FastAPI"/></div>
+        <div class="form-group"><label>GitHub URL</label><input type="text" id="c1_url" placeholder="https://github.com/tiangolo/fastapi"/></div>
       </div>
       <div>
         <div style="font-size:0.8rem;color:#06b6d4;font-weight:700;margin-bottom:0.8rem;">COMPANY 2</div>
-        <div class="form-group" style="margin-bottom:0.8rem;"><label>Company Name</label><input type="text" id="c2_name" placeholder="e.g. Django" /></div>
-        <div class="form-group"><label>GitHub URL</label><input type="text" id="c2_url" placeholder="https://github.com/django/django" /></div>
+        <div class="form-group" style="margin-bottom:0.8rem;"><label>Company Name</label><input type="text" id="c2_name" placeholder="e.g. Django"/></div>
+        <div class="form-group"><label>GitHub URL</label><input type="text" id="c2_url" placeholder="https://github.com/django/django"/></div>
       </div>
     </div>
     <div class="form-group" style="margin-top:1rem;">
@@ -281,7 +308,6 @@ select option { background: #111827; }
     </div>
     <button class="btn" onclick="startComparison()">⚖️ Start Comparison Audit</button>
   </div>
-
   <div id="compare-results" style="display:none;">
     <div class="winner-banner">
       <div class="winner-label">⚖️ Recommended Acquisition Target</div>
@@ -289,34 +315,26 @@ select option { background: #111827; }
     </div>
     <div class="compare-grid" id="compare-grid"></div>
   </div>
+</div>
 
-</div><!-- /compare-page -->
-
-<!-- ══════════════════════════════════════════════════════════
-     TASKS PAGE
-══════════════════════════════════════════════════════════ -->
+<!-- TASKS PAGE -->
 <div id="tasks-page" style="display:none;">
-
   <div class="card">
     <h2>📋 Due Diligence Task Manager</h2>
-    <p style="font-size:0.85rem;color:#64748b;margin-bottom:1.5rem;">
-      Add tasks directly to your Google Calendar. All VEDA due diligence tasks are tracked here.
-    </p>
-
+    <p style="font-size:0.85rem;color:#64748b;margin-bottom:1.5rem;">Add tasks directly to your Google Calendar.</p>
     <div class="add-task-form" style="margin-bottom:1.5rem;">
       <h4>➕ Add New Task to Google Calendar</h4>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-        <div class="form-group"><label>Task Title</label><input type="text" id="page-task-title" placeholder="e.g. Review MCA filings" /></div>
-        <div class="form-group"><label>Company (optional)</label><input type="text" id="page-task-company" placeholder="e.g. TechStartup Pvt Ltd" /></div>
-        <div class="form-group"><label>Due Date</label><input type="date" id="page-task-date" /></div>
-        <div class="form-group"><label>Time (optional)</label><input type="time" id="page-task-time" /></div>
-        <div class="form-group full"><label>Notes</label><input type="text" id="page-task-notes" placeholder="Any additional notes..." /></div>
+        <div class="form-group"><label>Task Title</label><input type="text" id="page-task-title" placeholder="e.g. Review MCA filings"/></div>
+        <div class="form-group"><label>Company (optional)</label><input type="text" id="page-task-company" placeholder="e.g. TechStartup Pvt Ltd"/></div>
+        <div class="form-group"><label>Due Date</label><input type="date" id="page-task-date"/></div>
+        <div class="form-group"><label>Time (optional)</label><input type="time" id="page-task-time"/></div>
+        <div class="form-group full"><label>Notes</label><input type="text" id="page-task-notes" placeholder="Any additional notes..."/></div>
       </div>
       <button class="btn" onclick="addPageTask()" style="margin-top:0;">📅 Add to Google Calendar</button>
       <div class="task-success" id="page-task-success">✅ Task added to Google Calendar!</div>
-      <div class="task-error"   id="page-task-error">❌ Failed. Make sure MCP server is running.</div>
+      <div class="task-error"   id="page-task-error">❌ Failed to add task.</div>
     </div>
-
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
       <h3 style="font-size:0.9rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">📅 Upcoming Tasks</h3>
       <button onclick="loadUpcomingTasks()" style="background:none;border:1px solid #1e2d45;color:#64748b;padding:0.3rem 0.8rem;border-radius:6px;cursor:pointer;font-size:0.8rem;">🔄 Refresh</button>
@@ -325,22 +343,9 @@ select option { background: #111827; }
       <div style="color:#64748b;font-size:0.85rem;text-align:center;padding:1.5rem;">Click Refresh to load your upcoming tasks</div>
     </div>
   </div>
+</div>
 
-  <!-- <div class="card">
-    <h2>⚡ Quick Due Diligence Templates</h2>
-    <p style="font-size:0.85rem;color:#64748b;margin-bottom:1.2rem;">One click to add standard due diligence tasks.</p>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.8rem;" id="templates-grid"></div>
-    <div class="form-group" style="margin-top:1rem;">
-      <label>Company Name for Templates</label>
-      <input type="text" id="template-company" placeholder="Enter company name first..." />
-    </div>
-    <div class="task-success" id="template-success">✅ Task added to Google Calendar!</div>
-    <div class="task-error"   id="template-error">❌ Failed to add template.</div>
-  </div> -->
-
-</div><!-- /tasks-page -->
-
-</div><!-- /container -->
+</div>
 
 <script>
 let currentJobId   = null;
@@ -352,9 +357,14 @@ let compareJob2    = null;
 let compareTimer   = null;
 let currentCompany = '';
 
-// ── Tasks go via VEDA API proxy (avoids CORS with localhost:8001) ──────────────
-// Add these proxy routes to api/main.py — see comments below
-const API = '';  // same origin
+// ── Load user info ────────────────────────────────────────────────────────────
+fetch("/auth/me").then(r => r.json()).then(u => {
+  if (!u.email) return;
+  const pill = document.getElementById('user-pill');
+  pill.style.display = 'flex';
+  document.getElementById('user-avatar').src = u.picture || '';
+  document.getElementById('user-name').textContent = u.name || u.email;
+}).catch(() => {});
 
 // ── Page navigation ───────────────────────────────────────────────────────────
 function showPage(page) {
@@ -377,7 +387,7 @@ async function startAudit() {
   btn.disabled = true; btn.textContent = '⏳ Starting...';
   try {
     const resp = await fetch('/audit', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         company_name: company, github_repo_url: github,
         industry, description: desc,
@@ -417,7 +427,7 @@ function handleEvent(event) {
     document.getElementById(`icon-${step}`).className  = `step-icon ${s==='running'?'running':s==='done'?'done':''}`;
     document.getElementById(`msg-${step}`).textContent = message;
     const scoreEl = document.getElementById(`score-${step}`);
-    if (status==='DONE' && data) {
+    if (status === 'DONE' && data) {
       if (data.tech_debt_score)  scoreEl.textContent = `Tech Debt: ${data.tech_debt_score}/100`;
       if (data.compliance_score) scoreEl.textContent = `Compliance: ${data.compliance_score}/100`;
       if (data.market_fit_score) scoreEl.textContent = `Market Fit: ${data.market_fit_score}/100`;
@@ -432,71 +442,106 @@ async function showResults(summaryData) {
   try {
     const report = await (await fetch(`/report/${currentJobId}`)).json();
     renderReport(report, summaryData);
+    renderCompetitors(report);
   } catch(e) { renderReport(null, summaryData); }
   await loadAuditTasks();
 }
 
 function renderReport(report, summary) {
-  const rec = summary?.recommendation || report?.executive_summary?.recommendation || '';
+  const rec   = summary?.recommendation || report?.executive_summary?.recommendation || '';
   const badge = document.getElementById('verdict-badge');
   badge.textContent = rec;
-  badge.className   = 'verdict-badge ' + (rec.includes('PROCEED WITH')?'badge-conditions':rec.includes('DO NOT')?'badge-avoid':'badge-proceed');
+  badge.className   = 'verdict-badge ' + (rec.includes('PROCEED WITH') ? 'badge-conditions' : rec.includes('DO NOT') ? 'badge-avoid' : 'badge-proceed');
   document.getElementById('verdict-text').textContent     = report?.executive_summary?.executive_summary || summary?.one_line_verdict || '';
   document.getElementById('verdict-oneliner').textContent = summary?.one_line_verdict || '';
   const tech = report?.code_audit?.tech_debt_score;
   const comp = report?.regulatory?.compliance_score;
-  const mfit = report?.market_forecast?.market_fit_score;
   const risk = summary?.overall_risk_score || report?.overall_risk_score;
   setScore('score-tech', tech); setScore('score-compliance', comp); setScore('score-risk', risk);
   const sc = report?.market_forecast?.scenarios || {};
   document.getElementById('forecast-grid').innerHTML = ['bear','base','bull'].map(s => {
     const d = sc[s]; if (!d) return '';
-    return `<div class="forecast-card ${s}"><div class="forecast-label">${s.toUpperCase()} — ${d.probability||''}</div><div class="forecast-arr">INR ${d.year3_arr_inr_lakhs||0}L ARR</div><div class="forecast-sub">Year 3 · ${d.year3_headcount||0} people</div><div class="forecast-sub" style="margin-top:0.5rem">${d.key_risk||d.key_driver||''}</div></div>`;
+    return `<div class="forecast-card ${s}"><div class="forecast-label">${s.toUpperCase()} — ${d.probability||''}</div><div class="forecast-arr">₹${d.year3_arr_inr_lakhs||0}L ARR</div><div class="forecast-sub">Year 3 · ${d.year3_headcount||0} people</div><div class="forecast-sub" style="margin-top:0.5rem">${d.key_risk||d.key_driver||''}</div></div>`;
   }).join('');
+  const mfit = report?.market_forecast?.market_fit_score;
   renderCharts(tech||50, comp||50, mfit||50, risk||50, sc?.bear?.year3_arr_inr_lakhs||0, sc?.base?.year3_arr_inr_lakhs||0, sc?.bull?.year3_arr_inr_lakhs||0);
 }
 
-function renderCharts(tech,comp,mfit,risk,bear,base,bull) {
+function renderCompetitors(report) {
+  const ci = report?.competitor_intelligence;
+  if (!ci || !ci.competitors || ci.competitors.length === 0) return;
+
+  const panel = document.getElementById('competitor-panel');
+  panel.style.display = 'block';
+
+  // Step 5 in progress tracker — mark done
+  document.getElementById('step-5').className  = 'agent-step done';
+  document.getElementById('icon-5').className  = 'step-icon done';
+  document.getElementById('msg-5').textContent = `✅ Found ${ci.competitors_found} competitors — Position: ${ci.competitive_position}`;
+  document.getElementById('score-5').textContent = `Threat Level: ${ci.threat_level}`;
+
+  document.getElementById('competitor-position-badge').textContent = ci.competitive_position || '';
+  document.getElementById('competitor-summary').textContent        = ci.landscape_summary || '';
+  document.getElementById('competitor-rationale').textContent      = ci.acquisition_rationale || '';
+
+  const threatClass = (ci.threat_level||'').toLowerCase() === 'high' ? 'threat-high' : (ci.threat_level||'').toLowerCase() === 'medium' ? 'threat-medium' : 'threat-low';
+
+  document.getElementById('competitor-grid').innerHTML = ci.competitors.map(c => `
+    <div class="competitor-card">
+      <div class="competitor-name">${c.name}</div>
+      <div class="competitor-stat"><span class="competitor-stat-label">GitHub Score</span><span class="competitor-stat-value">${c.github_score||'—'}/100</span></div>
+      <div class="competitor-stat"><span class="competitor-stat-label">Stars</span><span class="competitor-stat-value">${(c.stars||0).toLocaleString()}</span></div>
+      <div class="competitor-stat"><span class="competitor-stat-label">Commits/30d</span><span class="competitor-stat-value">${c.commits_30d||0}</span></div>
+      <div class="competitor-stat"><span class="competitor-stat-label">Language</span><span class="competitor-stat-value">${c.language||'—'}</span></div>
+      <div class="competitor-stat"><span class="competitor-stat-label">Tests</span><span class="competitor-stat-value">${c.has_tests?'✅':'❌'}</span></div>
+      <div class="competitor-stat"><span class="competitor-stat-label">CI/CD</span><span class="competitor-stat-value">${c.has_cicd?'✅':'❌'}</span></div>
+      <div style="margin-top:0.6rem;font-size:0.75rem;color:#64748b;line-height:1.4">${c.why_competitor||''}</div>
+      <span class="threat-badge ${threatClass}">${ci.threat_level||''} THREAT</span>
+    </div>
+  `).join('');
+}
+
+function renderCharts(tech, comp, mfit, risk, bear, base, bull) {
   document.getElementById('chart-section').style.display = 'grid';
   if (radarChart) radarChart.destroy();
   radarChart = new Chart(document.getElementById('radarChart').getContext('2d'), {
-    type:'radar', data:{ labels:['Tech Debt','Compliance','Market Fit','Overall Risk','Sustainability'],
-      datasets:[{label:'Risk Score', data:[tech,comp,mfit,risk,Math.round((tech+comp)/2)],
-        backgroundColor:'rgba(59,130,246,0.15)', borderColor:'#3b82f6', borderWidth:2,
-        pointBackgroundColor:'#06b6d4', pointBorderColor:'#fff', pointRadius:4}]},
-    options:{responsive:true, scales:{r:{min:0,max:100,
-      ticks:{color:'#64748b',backdropColor:'transparent',stepSize:25},
-      grid:{color:'#1e2d45'}, angleLines:{color:'#1e2d45'},
-      pointLabels:{color:'#94a3b8',font:{size:11}}}},
-      plugins:{legend:{labels:{color:'#64748b',font:{size:11}}}}}
+    type: 'radar',
+    data: { labels: ['Tech Debt','Compliance','Market Fit','Overall Risk','Sustainability'],
+      datasets: [{ label: 'Score', data: [tech, comp, mfit, risk, Math.round((tech+comp)/2)],
+        backgroundColor: 'rgba(59,130,246,0.15)', borderColor: '#3b82f6', borderWidth: 2,
+        pointBackgroundColor: '#06b6d4', pointBorderColor: '#fff', pointRadius: 4 }] },
+    options: { responsive: true, scales: { r: { min: 0, max: 100,
+      ticks: { color: '#64748b', backdropColor: 'transparent', stepSize: 25 },
+      grid: { color: '#1e2d45' }, angleLines: { color: '#1e2d45' },
+      pointLabels: { color: '#94a3b8', font: { size: 11 } } } },
+      plugins: { legend: { labels: { color: '#64748b', font: { size: 11 } } } } }
   });
   if (barChart) barChart.destroy();
   barChart = new Chart(document.getElementById('barChart').getContext('2d'), {
-    type:'bar', data:{labels:['Bear','Base','Bull'],
-      datasets:[{label:'Year 3 ARR (INR Lakhs)', data:[bear,base,bull],
-        backgroundColor:['rgba(239,68,68,0.7)','rgba(245,158,11,0.7)','rgba(16,185,129,0.7)'],
-        borderColor:['#ef4444','#f59e0b','#10b981'], borderWidth:2, borderRadius:6}]},
-    options:{responsive:true, scales:{
-      x:{ticks:{color:'#94a3b8'},grid:{color:'#1e2d45'}},
-      y:{ticks:{color:'#94a3b8'},grid:{color:'#1e2d45'},title:{display:true,text:'INR Lakhs',color:'#64748b'}}},
-      plugins:{legend:{labels:{color:'#64748b',font:{size:11}}}}}
+    type: 'bar',
+    data: { labels: ['Bear','Base','Bull'],
+      datasets: [{ label: 'Year 3 ARR (₹ Lakhs)', data: [bear, base, bull],
+        backgroundColor: ['rgba(239,68,68,0.7)','rgba(245,158,11,0.7)','rgba(16,185,129,0.7)'],
+        borderColor: ['#ef4444','#f59e0b','#10b981'], borderWidth: 2, borderRadius: 6 }] },
+    options: { responsive: true, scales: {
+      x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e2d45' } },
+      y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e2d45' }, title: { display: true, text: '₹ Lakhs', color: '#64748b' } } },
+      plugins: { legend: { labels: { color: '#64748b', font: { size: 11 } } } } }
   });
 }
 
-function setScore(id,val) {
+function setScore(id, val) {
   const el = document.getElementById(id);
-  if (!el||val==null) return;
+  if (!el || val == null) return;
   el.textContent = Math.round(val);
-  el.className   = 'score-value '+(val>=70?'score-good':val>=40?'score-medium':'score-poor');
+  el.className   = 'score-value ' + (val >= 70 ? 'score-good' : val >= 40 ? 'score-medium' : 'score-poor');
 }
 
-function downloadPDF() { if (currentJobId) window.open(`/report/${currentJobId}/pdf`,'_blank'); }
+function downloadPDF() { if (currentJobId) window.open(`/report/${currentJobId}/pdf`, '_blank'); }
 
-// ── Tasks — all calls go through /mcp/* proxy on the VEDA API ─────────────────
-// This avoids CORS issues — browser calls /mcp/tasks/list → FastAPI → MCP server
-
-async function mcpCall(path, method='GET', body=null) {
-  const opts = { method, headers:{'Content-Type':'application/json'} };
+// ── MCP proxy calls ───────────────────────────────────────────────────────────
+async function mcpCall(path, method = 'GET', body = null) {
+  const opts = { method, headers: {'Content-Type': 'application/json'} };
   if (body) opts.body = JSON.stringify(body);
   const resp = await fetch(`/mcp${path}`, opts);
   return resp.json();
@@ -505,7 +550,7 @@ async function mcpCall(path, method='GET', body=null) {
 async function loadAuditTasks() {
   try {
     const data  = await mcpCall('/tasks/list');
-    const tasks = (data.tasks||[]).filter(t => t.title && t.title.includes(currentCompany));
+    const tasks = (data.tasks || []).filter(t => t.title && t.title.includes(currentCompany));
     if (tasks.length > 0) renderAuditTasks(tasks);
   } catch(e) { console.log('Tasks load failed:', e); }
 }
@@ -515,35 +560,36 @@ function renderAuditTasks(tasks) {
   document.getElementById('tasks-count').textContent   = `${tasks.length} tasks`;
   const today = new Date();
   document.getElementById('audit-tasks-list').innerHTML = tasks.map(t => {
-    const due  = new Date(t.due||t.start?.date||Date.now());
-    const days = Math.ceil((due-today)/86400000);
-    const dot  = days<=1?'urgent':days<=3?'soon':'normal';
-    const txt  = due.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
-    const title = (t.title||'').replace('[TASK] ','').replace('[VEDA] ','');
+    const due   = new Date(t.due || Date.now());
+    const days  = Math.ceil((due - today) / 86400000);
+    const dot   = days <= 1 ? 'urgent' : days <= 3 ? 'soon' : 'normal';
+    const txt   = due.toLocaleDateString('en-IN', {day:'numeric', month:'short'});
+    const title = (t.title || '').replace('[TASK] ','').replace('[VEDA] ','');
     return `<div class="task-item"><div class="task-dot ${dot}"></div><div class="task-title">${title}</div><div class="task-due">📅 ${txt}</div><div class="task-badge">PENDING</div></div>`;
   }).join('');
-  const tmr = new Date(); tmr.setDate(tmr.getDate()+1);
+  const tmr = new Date(); tmr.setDate(tmr.getDate() + 1);
   document.getElementById('new-task-date').value = tmr.toISOString().split('T')[0];
 }
 
 async function addCustomTask() {
   const title = document.getElementById('new-task-title').value.trim();
   const date  = document.getElementById('new-task-date').value;
-  if (!title||!date) { alert('Please enter title and date'); return; }
+  if (!title || !date) { alert('Please enter title and date'); return; }
   const btn = document.getElementById('add-task-btn');
-  btn.disabled=true; btn.textContent='⏳ Adding...';
+  btn.disabled = true; btn.textContent = '⏳';
   try {
-    const data = await mcpCall('/tasks/create','POST',{
-      title:`[VEDA] ${title} — ${currentCompany}`,
-      description:`Added from VEDA audit for ${currentCompany}`,
+    const data = await mcpCall('/tasks/create', 'POST', {
+      title: `[VEDA] ${title} — ${currentCompany}`,
+      description: `Added from VEDA audit for ${currentCompany}`,
       due_date: date,
     });
-    if (data.created||data.task_id) {
-      showMsg('task-success','task-error'); document.getElementById('new-task-title').value='';
+    if (data.created || data.task_id) {
+      showMsg('task-success', 'task-error');
+      document.getElementById('new-task-title').value = '';
       await loadAuditTasks();
-    } else throw new Error(data.error||'Failed');
-  } catch(e) { showMsg('task-error','task-success'); }
-  btn.disabled=false; btn.textContent='📅 Add';
+    } else throw new Error(data.error || 'Failed');
+  } catch(e) { showMsg('task-error', 'task-success'); }
+  btn.disabled = false; btn.textContent = '📅 Add';
 }
 
 async function loadUpcomingTasks() {
@@ -551,16 +597,30 @@ async function loadUpcomingTasks() {
   c.innerHTML = '<div style="color:#64748b;font-size:0.85rem;text-align:center;padding:1.5rem;">⏳ Loading...</div>';
   try {
     const data  = await mcpCall('/tasks/list');
-    const tasks = data.tasks||[];
-    if (!tasks.length) { c.innerHTML='<div style="color:#64748b;font-size:0.85rem;text-align:center;padding:1.5rem;">No tasks yet. Run an audit or add tasks above.</div>'; return; }
+    const tasks = data.tasks || [];
+    if (!tasks.length) {
+      c.innerHTML = '<div style="color:#64748b;font-size:0.85rem;text-align:center;padding:1.5rem;">No tasks yet. Run an audit or add tasks above.</div>';
+      return;
+    }
     const today = new Date();
     c.innerHTML = tasks.map(t => {
-      const due   = new Date(t.due||t.start?.date||Date.now());
+      const due   = new Date(t.due || Date.now());
       const past  = due < today;
-      const title = (t.title||'').replace('[TASK] ','').replace('[VEDA] ','');
-      return `<div class="upcoming-item" style="${past?'opacity:0.5':''}"><div class="upcoming-date"><div class="upcoming-day" style="${past?'color:#ef4444':''}">${due.getDate()}</div><div class="upcoming-mon">${due.toLocaleDateString('en-IN',{month:'short'})}</div></div><div class="upcoming-info"><div class="upcoming-title">${title}</div><div class="upcoming-sub">${t.status==='completed'?'✅ Completed':'⏳ Pending'}</div></div></div>`;
+      const title = (t.title || '').replace('[TASK] ','').replace('[VEDA] ','');
+      return `<div class="upcoming-item" style="${past ? 'opacity:0.5' : ''}">
+        <div class="upcoming-date">
+          <div class="upcoming-day" style="${past ? 'color:#ef4444' : ''}">${due.getDate()}</div>
+          <div class="upcoming-mon">${due.toLocaleDateString('en-IN', {month:'short'})}</div>
+        </div>
+        <div class="upcoming-info">
+          <div class="upcoming-title">${title}</div>
+          <div class="upcoming-sub">${past ? '⚠️ Overdue' : '⏳ Pending'}</div>
+        </div>
+      </div>`;
     }).join('');
-  } catch(e) { c.innerHTML='<div style="color:#ef4444;font-size:0.85rem;text-align:center;padding:1.5rem;">❌ Cannot reach MCP server. Make sure it\'s running on port 8001.</div>'; }
+  } catch(e) {
+    c.innerHTML = '<div style="color:#ef4444;font-size:0.85rem;text-align:center;padding:1.5rem;">❌ Could not load tasks. Run an audit first.</div>';
+  }
 }
 
 async function addPageTask() {
@@ -568,34 +628,34 @@ async function addPageTask() {
   const company = document.getElementById('page-task-company').value.trim();
   const date    = document.getElementById('page-task-date').value;
   const notes   = document.getElementById('page-task-notes').value.trim();
-  if (!title||!date) { alert('Please enter title and date'); return; }
+  if (!title || !date) { alert('Please enter title and date'); return; }
   try {
-    const data = await mcpCall('/tasks/create','POST',{
-      title: company?`[VEDA] ${title} — ${company}`:`[VEDA] ${title}`,
+    const data = await mcpCall('/tasks/create', 'POST', {
+      title: company ? `[VEDA] ${title} — ${company}` : `[VEDA] ${title}`,
       description: notes, due_date: date,
     });
-    if (data.created||data.task_id) {
-      showMsg('page-task-success','page-task-error');
-      ['page-task-title','page-task-company','page-task-notes'].forEach(id=>document.getElementById(id).value='');
+    if (data.created || data.task_id) {
+      showMsg('page-task-success', 'page-task-error');
+      ['page-task-title','page-task-company','page-task-notes'].forEach(id => document.getElementById(id).value = '');
       await loadUpcomingTasks();
-    } else throw new Error(data.error||'Failed');
-  } catch(e) { showMsg('page-task-error','page-task-success'); }
+    } else throw new Error(data.error || 'Failed');
+  } catch(e) { showMsg('page-task-error', 'page-task-success'); }
 }
-
-
 
 // ── Compare ───────────────────────────────────────────────────────────────────
 async function startComparison() {
-  const c1_name=document.getElementById('c1_name').value.trim(), c1_url=document.getElementById('c1_url').value.trim();
-  const c2_name=document.getElementById('c2_name').value.trim(), c2_url=document.getElementById('c2_url').value.trim();
-  const industry=document.getElementById('compare_industry').value;
-  if (!c1_name||!c1_url||!c2_name||!c2_url) { alert('Please fill all fields'); return; }
-  const params = new URLSearchParams({company1_name:c1_name,company1_url:c1_url,company2_name:c2_name,company2_url:c2_url,industry});
-  const data   = await (await fetch(`/compare?${params}`,{method:'POST'})).json();
+  const c1_name = document.getElementById('c1_name').value.trim();
+  const c1_url  = document.getElementById('c1_url').value.trim();
+  const c2_name = document.getElementById('c2_name').value.trim();
+  const c2_url  = document.getElementById('c2_url').value.trim();
+  const industry = document.getElementById('compare_industry').value;
+  if (!c1_name || !c1_url || !c2_name || !c2_url) { alert('Please fill all fields'); return; }
+  const params = new URLSearchParams({company1_name:c1_name, company1_url:c1_url, company2_name:c2_name, company2_url:c2_url, industry});
+  const data   = await (await fetch(`/compare?${params}`, {method:'POST'})).json();
   compareJob1  = data.job1_id; compareJob2 = data.job2_id;
   document.getElementById('compare-form-card').style.display = 'none';
-  document.getElementById('winner-name').textContent          = '⏳ Running 4 agents on both companies...';
-  document.getElementById('compare-results').style.display    = 'block';
+  document.getElementById('winner-name').textContent         = '⏳ Running 4 agents on both companies...';
+  document.getElementById('compare-results').style.display   = 'block';
   document.getElementById('compare-grid').innerHTML = `
     <div class="compare-card"><div style="font-weight:700;color:#3b82f6;margin-bottom:0.5rem">${c1_name}</div><div style="color:#64748b;font-size:0.8rem">⏳ Analyzing...</div></div>
     <div class="compare-card"><div style="font-weight:700;color:#06b6d4;margin-bottom:0.5rem">${c2_name}</div><div style="color:#64748b;font-size:0.8rem">⏳ Analyzing...</div></div>`;
@@ -605,13 +665,16 @@ async function startComparison() {
 
 async function pollComparison() {
   const data = await (await fetch(`/compare/result?job1_id=${compareJob1}&job2_id=${compareJob2}`)).json();
-  if (data.status !== 'COMPLETED') { document.getElementById('winner-name').textContent=`⏳ ${data.job1_status||'RUNNING'} / ${data.job2_status||'RUNNING'}...`; return; }
+  if (data.status !== 'COMPLETED') {
+    document.getElementById('winner-name').textContent = `⏳ ${data.job1_status||'RUNNING'} / ${data.job2_status||'RUNNING'}...`;
+    return;
+  }
   clearInterval(compareTimer);
   document.getElementById('winner-name').textContent = `🏆 ${data.winner}`;
-  const sc = v => v>=70?'#10b981':v>=40?'#f59e0b':'#ef4444';
-  document.getElementById('compare-grid').innerHTML = [data.company1,data.company2].map(c => {
-    const win = c.name===data.winner;
-    return `<div class="compare-card ${win?'winner':''}">
+  const sc = v => v >= 70 ? '#10b981' : v >= 40 ? '#f59e0b' : '#ef4444';
+  document.getElementById('compare-grid').innerHTML = [data.company1, data.company2].map(c => {
+    const win = c.name === data.winner;
+    return `<div class="compare-card ${win ? 'winner' : ''}">
       <div style="font-size:1rem;font-weight:700;color:${win?'#10b981':'#f1f5f9'};margin-bottom:1rem">${win?'🏆 ':''}${c.name}</div>
       <div class="compare-metric"><span class="compare-metric-label">Tech Debt</span><span class="compare-metric-value" style="color:${sc(c.tech_debt)}">${c.tech_debt||'—'}/100</span></div>
       <div class="compare-metric"><span class="compare-metric-label">Compliance</span><span class="compare-metric-value" style="color:${sc(c.compliance)}">${c.compliance||'—'}/100</span></div>
@@ -626,19 +689,17 @@ async function pollComparison() {
 function showMsg(successId, errorId) {
   document.getElementById(successId).style.display = 'block';
   document.getElementById(errorId).style.display   = 'none';
-  setTimeout(() => document.getElementById(successId).style.display='none', 3000);
+  setTimeout(() => document.getElementById(successId).style.display = 'none', 3000);
 }
 
 document.getElementById('schedule_meeting').addEventListener('change', function() {
   document.getElementById('meeting-fields').style.display = this.checked ? 'block' : 'none';
 });
 
-const tmr = new Date(); tmr.setDate(tmr.getDate()+1);
+const tmr = new Date(); tmr.setDate(tmr.getDate() + 1);
 const tStr = tmr.toISOString().split('T')[0];
-document.getElementById('new-task-date').value  = tStr;
-document.getElementById('page-task-date').value = tStr;
-
-initTemplates();
+if (document.getElementById('new-task-date'))  document.getElementById('new-task-date').value  = tStr;
+if (document.getElementById('page-task-date')) document.getElementById('page-task-date').value = tStr;
 </script>
 </body>
 </html>

@@ -1,27 +1,59 @@
 """
 VEDA — Venture Evaluation & Due Diligence Agent
-Main FastAPI application with WebSocket live progress.
+Main FastAPI application with Google OAuth, WebSocket live progress,
+per-user session management, and MCP proxy routes.
 """
-
+import io
+import logging
+import sys
 import uuid
 from datetime import datetime
-from fastapi import FastAPI, BackgroundTasks, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse
-from pydantic import BaseModel
 from typing import Optional
-from fastapi.responses import StreamingResponse 
-from utils.pdf_generator import generate_pdf
-import io
-from agents.primary_agent import PrimaryAgent
-from db.bigquery_client import BigQueryClient
-from api.progress_manager import ProgressManager
 
+import httpx as _httpx
+from authlib.integrations.starlette_client import OAuthError
+from fastapi import (
+    BackgroundTasks, Depends, FastAPI, HTTPException,
+    Request, WebSocket, WebSocketDisconnect,
+)
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+from starlette.middleware.sessions import SessionMiddleware
+
+from agents.primary_agent import PrimaryAgent
+from api.auth import (
+    SESSION_COOKIE, create_session_token,
+    decode_session_token, get_current_user,
+    oauth, require_user,
+)
+from api.progress_manager import ProgressManager
+from db.bigquery_client import BigQueryClient
+from utils.config import MCP_SERVER_URL, OAUTH_REDIRECT_URI, SESSION_SECRET
+from utils.pdf_generator import generate_pdf
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(name)s — %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+logger = logging.getLogger(__name__)
+
+# ── App ───────────────────────────────────────────────────────────────────────
 app = FastAPI(
     title="VEDA — Venture Evaluation & Due Diligence Agent",
     description="Multi-agent AI system for M&A due diligence powered by Vertex AI",
-    version="1.0.0",
+    version="2.0.0",
+)
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SESSION_SECRET,
+    session_cookie="veda_starlette_session",
+    max_age=60 * 60 * 8,
+    https_only=False,
 )
 
 app.add_middleware(
@@ -41,12 +73,12 @@ agent    = PrimaryAgent(progress_manager=progress)
 # ── Schemas ───────────────────────────────────────────────────────────────────
 
 class AuditRequest(BaseModel):
-    company_name:              str
-    github_repo_url:           str
-    industry:                  str
-    description:               Optional[str] = ""
-    schedule_kickoff_meeting:  Optional[bool] = False
-    attendee_email:            Optional[str] = ""
+    company_name:             str
+    github_repo_url:          str
+    industry:                 str
+    description:              Optional[str] = ""
+    schedule_kickoff_meeting: Optional[bool] = False
+    attendee_email:           Optional[str] = ""
 
 class AuditResponse(BaseModel):
     job_id:        str
@@ -56,11 +88,90 @@ class AuditResponse(BaseModel):
     websocket_url: str
 
 
-# ── Routes ────────────────────────────────────────────────────────────────────
+# ── Auth routes ───────────────────────────────────────────────────────────────
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page():
+    with open("static/login.html") as f:
+        return f.read()
+
+
+@app.get("/auth/login")
+async def auth_login(request: Request):
+    """Redirect user to Google OAuth consent screen."""
+    return await oauth.google.authorize_redirect(
+        request,
+        OAUTH_REDIRECT_URI,
+    )
+
+
+@app.get("/auth/callback")
+async def auth_callback(request: Request):
+    """Handle Google OAuth callback — create session and redirect to dashboard."""
+    try:
+        token = await oauth.google.authorize_access_token(request)
+    except OAuthError as exc:
+        logger.error("OAuth callback error: %s", exc)
+        return RedirectResponse(url="/login?error=oauth_failed")
+
+    user_info = token.get("userinfo") or {}
+    if not user_info:
+        try:
+            user_info = await oauth.google.userinfo(token=token)
+        except Exception as exc:
+            logger.error("Failed to fetch userinfo: %s", exc)
+            return RedirectResponse(url="/login?error=userinfo_failed")
+
+    user = {
+        "email":      user_info.get("email", ""),
+        "name":       user_info.get("name", ""),
+        "picture":    user_info.get("picture", ""),
+        "sub":        user_info.get("sub", ""),
+        "access_token":  token.get("access_token", ""),
+        "refresh_token": token.get("refresh_token", ""),
+        "refresh_token": token.get("refresh_token", ""),
+        "token_uri":     "https://oauth2.googleapis.com/token",
+    }
+
+    logger.info("User authenticated: %s", user["email"])
+
+    session_token = create_session_token(user)
+    response = RedirectResponse(url="/", status_code=302)
+    response.set_cookie(
+        key=SESSION_COOKIE,
+        value=session_token,
+        httponly=True,
+        max_age=60 * 60 * 8,
+        samesite="lax",
+    )
+    return response
+
+
+@app.get("/auth/logout")
+async def logout():
+    """Clear session and redirect to login."""
+    response = RedirectResponse(url="/login")
+    response.delete_cookie(SESSION_COOKIE)
+    return response
+
+
+@app.get("/auth/me")
+async def me(request: Request):
+    """Return current authenticated user info."""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return {"email": user["email"], "name": user["name"], "picture": user["picture"]}
+
+
+# ── Core routes ───────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
-async def serve_ui():
-    """Serve the VEDA web dashboard."""
+async def serve_ui(request: Request):
+    """Serve dashboard — redirect to login if not authenticated."""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login")
     with open("static/index.html") as f:
         return f.read()
 
@@ -70,31 +181,39 @@ def health():
     return {
         "service": "VEDA — Venture Evaluation & Due Diligence Agent",
         "status":  "running",
-        "version": "1.0.0",
+        "version": "2.0.0",
     }
 
 
 @app.post("/audit", response_model=AuditResponse)
-async def start_audit(request: AuditRequest, background_tasks: BackgroundTasks):
-    """
-    Start a VEDA due diligence audit.
-    Connect to /ws/{job_id} for live progress updates.
-    """
+async def start_audit(
+    request_body: AuditRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    user: dict = Depends(require_user),
+):
     job_id     = str(uuid.uuid4())
     created_at = datetime.utcnow().isoformat()
 
-    bq.create_job(job_id, request.dict(), created_at)
+    audit_data = request_body.dict()
+    audit_data["user_email"] = user["email"]
+
+    bq.create_job(job_id, audit_data, created_at)
 
     background_tasks.add_task(
         agent.run_full_audit,
         job_id           = job_id,
-        company_name     = request.company_name,
-        github_repo_url  = request.github_repo_url,
-        industry         = request.industry,
-        description      = request.description,
-        schedule_meeting = request.schedule_kickoff_meeting,
-        attendee_email   = request.attendee_email,
+        company_name     = request_body.company_name,
+        github_repo_url  = request_body.github_repo_url,
+        industry         = request_body.industry,
+        description      = request_body.description,
+        schedule_meeting = request_body.schedule_kickoff_meeting,
+        attendee_email      = request_body.attendee_email or user["email"],
+        user_access_token   = user.get("access_token", ""),
+        refresh_token       = user.get("refresh_token", ""),
     )
+
+    logger.info("Audit started: %s by %s", job_id, user["email"])
 
     return AuditResponse(
         job_id        = job_id,
@@ -107,22 +226,6 @@ async def start_audit(request: AuditRequest, background_tasks: BackgroundTasks):
 
 @app.websocket("/ws/{job_id}")
 async def websocket_progress(websocket: WebSocket, job_id: str):
-    """
-    WebSocket endpoint — receives live agent progress events.
-
-    Event format:
-    {
-      "job_id": "...",
-      "step": 1,
-      "total_steps": 4,
-      "agent": "Code Auditor",
-      "status": "RUNNING" | "DONE" | "FAILED" | "COMPLETED",
-      "message": "Scanning GitHub repository...",
-      "data": { ...agent results... },
-      "progress_pct": 25,
-      "timestamp": "..."
-    }
-    """
     await progress.connect(job_id, websocket)
     try:
         while True:
@@ -134,8 +237,7 @@ async def websocket_progress(websocket: WebSocket, job_id: str):
 
 
 @app.get("/status/{job_id}")
-def get_status(job_id: str):
-    """Poll the current status of an audit job."""
+def get_status(job_id: str, user: dict = Depends(require_user)):
     record = bq.get_job(job_id)
     if not record:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -143,8 +245,7 @@ def get_status(job_id: str):
 
 
 @app.get("/report/{job_id}")
-def get_report(job_id: str):
-    """Get the full due diligence report (only available when COMPLETED)."""
+def get_report(job_id: str, user: dict = Depends(require_user)):
     record = bq.get_job(job_id)
     if not record:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -153,128 +254,8 @@ def get_report(job_id: str):
     return bq.get_report(job_id)
 
 
-
-
-@app.get("/report/{job_id}/trail")
-def get_audit_trail(job_id: str):
-    """Get the full agent event trail for an audit."""
-    return {"events": bq.get_agent_events(job_id)}
-
-
-@app.get("/jobs")
-def list_jobs(limit: int = 10):
-    """List recent audit jobs."""
-    return bq.list_jobs(limit=limit)
-
-
-@app.get("/analytics/stats")
-def get_stats():
-    """Dashboard stats — total audits, completion rate, avg duration."""
-    return bq.get_dashboard_stats()
-
-
-@app.get("/analytics/industries")
-def get_industry_breakdown():
-    """Industry breakdown for analytics dashboard."""
-    return bq.get_industry_breakdown()
-
-@app.post("/compare")
-async def compare_companies(background_tasks: BackgroundTasks,
-    company1_name: str = "",
-    company1_url: str = "",
-    company2_name: str = "",
-    company2_url: str = "",
-    industry: str = "saas"):
-    
-    job1_id = str(uuid.uuid4())
-    job2_id = str(uuid.uuid4())
-    created_at = datetime.utcnow().isoformat()
-
-    bq.create_job(job1_id, {
-        "company_name": company1_name,
-        "github_repo_url": company1_url,
-        "industry": industry,
-        "description": ""
-    }, created_at)
-
-    bq.create_job(job2_id, {
-        "company_name": company2_name,
-        "github_repo_url": company2_url,
-        "industry": industry,
-        "description": ""
-    }, created_at)
-
-    background_tasks.add_task(
-        agent.run_full_audit,
-        job_id=job1_id,
-        company_name=company1_name,
-        github_repo_url=company1_url,
-        industry=industry,
-        description="",
-        schedule_meeting=False,
-        attendee_email=""
-    )
-
-    background_tasks.add_task(
-        agent.run_full_audit,
-        job_id=job2_id,
-        company_name=company2_name,
-        github_repo_url=company2_url,
-        industry=industry,
-        description="",
-        schedule_meeting=False,
-        attendee_email=""
-    )
-
-    return {
-        "job1_id": job1_id,
-        "job2_id": job2_id,
-        "status": "RUNNING",
-        "message": "Both audits started. Poll /compare/result for results."
-    }
-
-
-@app.get("/compare/result")
-def compare_result(job1_id: str, job2_id: str):
-    report1 = bq.get_report(job1_id)
-    report2 = bq.get_report(job2_id)
-    job1 = bq.get_job(job1_id)
-    job2 = bq.get_job(job2_id)
-
-    if not report1 or not report2:
-        return {
-            "status": "PENDING",
-            "job1_status": job1.get("status") if job1 else "UNKNOWN",
-            "job2_status": job2.get("status") if job2 else "UNKNOWN",
-        }
-
-    score1 = report1.get("overall_risk_score", 0) or 0
-    score2 = report2.get("overall_risk_score", 0) or 0
-    winner = report1.get("company_name") if score1 >= score2 else report2.get("company_name")
-
-    return {
-        "status": "COMPLETED",
-        "winner": winner,
-        "company1": {
-            "name": report1.get("company_name"),
-            "overall_risk_score": score1,
-            "tech_debt": report1.get("code_audit", {}).get("tech_debt_score"),
-            "compliance": report1.get("regulatory", {}).get("compliance_score"),
-            "market_fit": report1.get("market_forecast", {}).get("market_fit_score"),
-            "recommendation": report1.get("executive_summary", {}).get("recommendation"),
-        },
-        "company2": {
-            "name": report2.get("company_name"),
-            "overall_risk_score": score2,
-            "tech_debt": report2.get("code_audit", {}).get("tech_debt_score"),
-            "compliance": report2.get("regulatory", {}).get("compliance_score"),
-            "market_fit": report2.get("market_forecast", {}).get("market_fit_score"),
-            "recommendation": report2.get("executive_summary", {}).get("recommendation"),
-        }
-    }
 @app.get("/report/{job_id}/pdf")
-def get_pdf_report(job_id: str):
-    bq = BigQueryClient()
+def get_pdf_report(job_id: str, user: dict = Depends(require_user)):
     report = bq.get_report(job_id)
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
@@ -282,60 +263,172 @@ def get_pdf_report(job_id: str):
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=VEDA-{job_id[:8]}.pdf"}
+        headers={"Content-Disposition": f"attachment; filename=VEDA-{job_id[:8]}.pdf"},
     )
 
-# ── ADD THESE ROUTES TO api/main.py ──────────────────────────────────────────
-# They proxy /mcp/* calls from the browser to the MCP server
-# This fixes the CORS issue where browser can't call localhost:8001 directly
-#
-# Paste these routes BEFORE the last route in api/main.py
-# ─────────────────────────────────────────────────────────────────────────────
 
-import httpx as _httpx
-from fastapi import Request as _Request
-from fastapi.responses import JSONResponse as _JSONResponse
+@app.get("/report/{job_id}/trail")
+def get_audit_trail(job_id: str, user: dict = Depends(require_user)):
+    return {"events": bq.get_agent_events(job_id)}
 
-MCP_BASE = "http://localhost:8001"
+
+@app.get("/jobs")
+def list_jobs(limit: int = 10, user: dict = Depends(require_user)):
+    return bq.list_jobs(limit=limit)
+
+
+@app.get("/analytics/stats")
+def get_stats(user: dict = Depends(require_user)):
+    return bq.get_dashboard_stats()
+
+
+@app.get("/analytics/industries")
+def get_industry_breakdown(user: dict = Depends(require_user)):
+    return bq.get_industry_breakdown()
+
+
+@app.post("/compare")
+async def compare_companies(
+    background_tasks: BackgroundTasks,
+    request: Request,
+    company1_name: str = "",
+    company1_url: str = "",
+    company2_name: str = "",
+    company2_url: str = "",
+    industry: str = "saas",
+    user: dict = Depends(require_user),
+):
+    job1_id    = str(uuid.uuid4())
+    job2_id    = str(uuid.uuid4())
+    created_at = datetime.utcnow().isoformat()
+
+    for job_id, name, url in [
+        (job1_id, company1_name, company1_url),
+        (job2_id, company2_name, company2_url),
+    ]:
+        bq.create_job(job_id, {
+            "company_name":    name,
+            "github_repo_url": url,
+            "industry":        industry,
+            "description":     "",
+            "user_email":      user["email"],
+        }, created_at)
+        background_tasks.add_task(
+            agent.run_full_audit,
+            job_id=job_id, company_name=name,
+            github_repo_url=url, industry=industry,
+            description="", schedule_meeting=False, attendee_email="",
+        )
+
+    return {
+        "job1_id": job1_id,
+        "job2_id": job2_id,
+        "status":  "RUNNING",
+        "message": "Both audits started.",
+    }
+
+
+@app.get("/compare/result")
+def compare_result(
+    job1_id: str,
+    job2_id: str,
+    user: dict = Depends(require_user),
+):
+    report1 = bq.get_report(job1_id)
+    report2 = bq.get_report(job2_id)
+    job1    = bq.get_job(job1_id)
+    job2    = bq.get_job(job2_id)
+
+    if not report1 or not report2:
+        return {
+            "status":      "PENDING",
+            "job1_status": job1.get("status") if job1 else "UNKNOWN",
+            "job2_status": job2.get("status") if job2 else "UNKNOWN",
+        }
+
+    score1 = report1.get("overall_risk_score", 0) or 0
+    score2 = report2.get("overall_risk_score", 0) or 0
+    winner = (
+        report1.get("company_name") if score1 >= score2
+        else report2.get("company_name")
+    )
+
+    def _summary(r):
+        return {
+            "name":               r.get("company_name"),
+            "overall_risk_score": r.get("overall_risk_score", 0),
+            "tech_debt":          r.get("code_audit", {}).get("tech_debt_score"),
+            "compliance":         r.get("regulatory", {}).get("compliance_score"),
+            "market_fit":         r.get("market_forecast", {}).get("market_fit_score"),
+            "recommendation":     r.get("executive_summary", {}).get("recommendation"),
+        }
+
+    return {
+        "status":   "COMPLETED",
+        "winner":   winner,
+        "company1": _summary(report1),
+        "company2": _summary(report2),
+    }
+
+
+# ── MCP proxy routes (browser → API → MCP server, avoids CORS) ───────────────
 
 @app.get("/mcp/tasks/list")
-async def proxy_tasks_list():
-    """Proxy: browser → VEDA API → MCP server (avoids CORS)"""
-    try:
-        async with _httpx.AsyncClient() as client:
-            resp = await client.get(f"{MCP_BASE}/tasks/list", timeout=10)
-            return _JSONResponse(resp.json())
-    except Exception as e:
-        return _JSONResponse({"tasks": [], "error": str(e)})
+async def proxy_tasks_list(request: Request, user: dict = Depends(require_user)):
+    async with _httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(
+                f"{MCP_SERVER_URL}/tasks/list",
+                params={
+                    "user_access_token": user.get("access_token", ""),
+                    "refresh_token":     user.get("refresh_token", ""),
+                },
+                timeout=10,
+            )
+            return JSONResponse(resp.json())
+        except Exception as exc:
+            return JSONResponse({"tasks": [], "error": str(exc)})
+
 
 @app.post("/mcp/tasks/create")
-async def proxy_tasks_create(request: _Request):
-    """Proxy: browser → VEDA API → MCP server"""
-    try:
-        body = await request.json()
-        async with _httpx.AsyncClient() as client:
-            resp = await client.post(f"{MCP_BASE}/tasks/create", json=body, timeout=15)
-            return _JSONResponse(resp.json())
-    except Exception as e:
-        return _JSONResponse({"created": False, "error": str(e)})
+async def proxy_tasks_create(request: Request, user: dict = Depends(require_user)):
+    body = await request.json()
+    # Inject user OAuth token so task goes to THEIR calendar
+    body["user_access_token"] = user.get("access_token", "")
+    body["refresh_token"]     = user.get("refresh_token", "")
+    async with _httpx.AsyncClient() as client:
+        try:
+            resp = await client.post(f"{MCP_SERVER_URL}/tasks/create", json=body, timeout=15)
+            return JSONResponse(resp.json())
+        except Exception as exc:
+            return JSONResponse({"created": False, "error": str(exc)})
+
 
 @app.get("/mcp/calendar/upcoming")
-async def proxy_calendar_upcoming():
-    """Proxy: browser → VEDA API → MCP server"""
-    try:
-        async with _httpx.AsyncClient() as client:
-            resp = await client.get(f"{MCP_BASE}/calendar/upcoming", timeout=10)
-            return _JSONResponse(resp.json())
-    except Exception as e:
-        return _JSONResponse({"meetings": [], "error": str(e)})
+async def proxy_calendar_upcoming(user: dict = Depends(require_user)):
+    async with _httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(
+                f"{MCP_SERVER_URL}/calendar/upcoming",
+                params={
+                    "user_access_token": user.get("access_token", ""),
+                    "refresh_token":     user.get("refresh_token", ""),
+                },
+                timeout=10,
+            )
+            return JSONResponse(resp.json())
+        except Exception as exc:
+            return JSONResponse({"meetings": [], "error": str(exc)})
+
 
 @app.post("/mcp/calendar/schedule")
-async def proxy_calendar_schedule(request: _Request):
-    """Proxy: browser → VEDA API → MCP server"""
-    try:
-        body = await request.json()
-        async with _httpx.AsyncClient() as client:
-            resp = await client.post(f"{MCP_BASE}/calendar/schedule", json=body, timeout=15)
-            return _JSONResponse(resp.json())
-    except Exception as e:
-        return _JSONResponse({"scheduled": False, "error": str(e)})
+async def proxy_calendar_schedule(request: Request, user: dict = Depends(require_user)):
+    body = await request.json()
+    body["user_access_token"] = user.get("access_token", "")
+    body["refresh_token"] = user.get("refresh_token", "")
+    async with _httpx.AsyncClient() as client:
+        try:
+            resp = await client.post(f"{MCP_SERVER_URL}/calendar/schedule", json=body, timeout=15)
+            return JSONResponse(resp.json())
+        except Exception as exc:
+            return JSONResponse({"scheduled": False, "error": str(exc)})
