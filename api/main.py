@@ -432,3 +432,52 @@ async def proxy_calendar_schedule(request: Request, user: dict = Depends(require
             return JSONResponse(resp.json())
         except Exception as exc:
             return JSONResponse({"scheduled": False, "error": str(exc)})
+
+@app.get("/history")
+def get_audit_history(limit: int = 20, user: dict = Depends(require_user)):
+    """Get audit history with scores for the history dashboard."""
+    try:
+        query = f"""
+            SELECT
+                j.job_id,
+                j.company_name,
+                j.status,
+                CAST(j.created_at AS STRING) as created_at,
+                r.overall_risk_score,
+                JSON_VALUE(r.report_json, '$.code_audit.tech_debt_score') as tech_debt_score,
+                JSON_VALUE(r.report_json, '$.regulatory.compliance_score') as compliance_score,
+                JSON_VALUE(r.report_json, '$.market_forecast.market_fit_score') as market_fit_score,
+                JSON_VALUE(r.report_json, '$.executive_summary.recommendation') as recommendation,
+                JSON_VALUE(r.report_json, '$.industry') as industry,
+                JSON_VALUE(r.report_json, '$.company_name') as report_company_name
+            FROM (
+                SELECT job_id, MAX(updated_at) as latest
+                FROM `{bq.client.project}.{bq.dataset}.audit_jobs`
+                GROUP BY job_id
+            ) latest_jobs
+            JOIN `{bq.client.project}.{bq.dataset}.audit_jobs` j
+                ON j.job_id = latest_jobs.job_id AND j.updated_at = latest_jobs.latest
+            LEFT JOIN `{bq.client.project}.{bq.dataset}.audit_reports` r
+                ON r.job_id = j.job_id
+            WHERE j.status = 'COMPLETED'
+            ORDER BY j.created_at DESC
+            LIMIT {limit}
+        """
+        rows = list(bq.client.query(query).result())
+        history = []
+        for row in rows:
+            history.append({
+                "job_id":             row.job_id,
+                "company_name": row.report_company_name or row.company_name or "Unknown",
+                "status":             row.status,
+                "created_at":         str(row.created_at)[:19],
+                "overall_risk_score": float(row.overall_risk_score) if row.overall_risk_score else None,
+                "tech_debt_score":    float(row.tech_debt_score) if row.tech_debt_score else None,
+                "compliance_score":   float(row.compliance_score) if row.compliance_score else None,
+                "market_fit_score":   float(row.market_fit_score) if row.market_fit_score else None,
+                "recommendation":     row.recommendation or "—",
+                "industry":           row.industry or "—",
+            })
+        return {"history": history, "total": len(history)}
+    except Exception as e:
+        return {"history": [], "total": 0, "error": str(e)}

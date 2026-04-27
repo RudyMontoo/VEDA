@@ -15,6 +15,7 @@ from agents.regulatory_scout import RegulatoryScoutAgent
 from agents.market_analyst import MarketAnalystAgent
 from agents.executive_summary import ExecutiveSummaryAgent
 from agents.competitor_intelligence import CompetitorIntelligenceAgent
+from agents.news_sentiment import NewsSentimentAgent
 from db.bigquery_client import BigQueryClient
 from utils.config import (
     PROJECT_ID, LOCATION, MCP_SERVER_URL,
@@ -37,6 +38,7 @@ class PrimaryAgent:
         self.market_analyst   = MarketAnalystAgent()
         self.exec_summary     = ExecutiveSummaryAgent()
         self.competitor_intel = CompetitorIntelligenceAgent()
+        self.news_sentiment   = NewsSentimentAgent()
 
     def run_full_audit(
         self,
@@ -180,6 +182,11 @@ class PrimaryAgent:
                 market_results.get("market_fit_score", 50) * 0.30, 1,
             )
 
+            # ── Agent 6: News Sentiment (non-blocking) ─────────────
+            news_results = await self._run_news_sentiment(
+                job_id, company_name, industry, github_repo_url,
+            )
+
             # ── Agent 5: Competitor Intelligence (non-blocking) ───────
             competitor_results = await self._run_competitor_intelligence(
                 job_id, company_name, industry, github_repo_url,
@@ -197,6 +204,7 @@ class PrimaryAgent:
                 "market_forecast":         market_results,
                 "executive_summary":       summary_results,
                 "competitor_intelligence": competitor_results,
+                "news_sentiment":          news_results,
                 "completed_at":            datetime.utcnow().isoformat(),
             }
 
@@ -314,3 +322,21 @@ class PrimaryAgent:
                 logger.info("[PrimaryAgent] Kickoff scheduled: %s", data.get("event_id"))
         except Exception as exc:
             logger.warning("[PrimaryAgent] Calendar scheduling failed (non-fatal): %s", exc)
+
+    async def _run_news_sentiment(
+        self,
+        job_id: str,
+        company_name: str,
+        industry: str,
+        github_repo_url: str,
+    ) -> dict:
+        """Run news sentiment as non-blocking background enrichment."""
+        try:
+            return await self._run_with_timeout(
+                self.news_sentiment.run,
+                90,
+                job_id, company_name, industry, github_repo_url,
+            )
+        except Exception as exc:
+            logger.warning("[PrimaryAgent] News sentiment failed (non-fatal): %s", exc)
+            return {}

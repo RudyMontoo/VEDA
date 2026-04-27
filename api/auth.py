@@ -34,7 +34,7 @@ oauth.register(
             "https://www.googleapis.com/auth/calendar "
             "https://www.googleapis.com/auth/tasks"
         ),
-        "prompt": "select_account",
+        "prompt": "consent select_account",
     },
 )
 

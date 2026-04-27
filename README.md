@@ -258,13 +258,7 @@ uvicorn api.main:app --port 8080 --reload
 ### 4. Deploy to Cloud Run
 
 ```bash
-gcloud run deploy veda-api 
-  --source . 
-  --region us-central1 
-  --allow-unauthenticated 
-  --set-env-vars GOOGLE_CLOUD_PROJECT=veda-491808,BQ_DATASET=veda_ma_diligence,VERTEX_AI_MODEL=gemini-2.5-flash 
-  --memory 1Gi 
-  --timeout 300
+python tests/test_e2e.py
 ```
 
 ---

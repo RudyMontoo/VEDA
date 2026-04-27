@@ -59,7 +59,9 @@ def _repo_path(url: str) -> str:
 
 def _calendar_service(access_token: str, refresh_token: str = ""):
     from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
     from googleapiclient.discovery import build
+
     creds = Credentials(
         token=access_token,
         refresh_token=refresh_token or None,
@@ -67,6 +69,12 @@ def _calendar_service(access_token: str, refresh_token: str = ""):
         client_id=CLIENT_ID,
         client_secret=CLIENT_SECRET,
     )
+    # Auto-refresh if token expired
+    if creds.expired and creds.refresh_token:
+        try:
+            creds.refresh(Request())
+        except Exception as e:
+            logger.warning("Token refresh failed: %s", e)
     return build("calendar", "v3", credentials=creds)
 
 
