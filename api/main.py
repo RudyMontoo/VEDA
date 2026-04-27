@@ -33,12 +33,9 @@ from db.bigquery_client import BigQueryClient
 from utils.config import MCP_SERVER_URL, OAUTH_REDIRECT_URI, SESSION_SECRET
 from utils.pdf_generator import generate_pdf
 
-# ── Logging ───────────────────────────────────────────────────────────────────
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(name)s — %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
+# ── Logging — Google Cloud Logging ───────────────────────────────────────────
+from utils.cloud_logger import setup_cloud_logging
+setup_cloud_logging()
 logger = logging.getLogger(__name__)
 
 # ── App ───────────────────────────────────────────────────────────────────────

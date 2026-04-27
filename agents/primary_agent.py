@@ -24,6 +24,7 @@ from utils.config import (
 )
 
 logger = logging.getLogger(__name__)
+from utils.cloud_logger import log_audit_event
 
 
 class PrimaryAgent:
