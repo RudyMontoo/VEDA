@@ -1,7 +1,8 @@
-.env
+api_env/
+tf_env/
+veda-frontend/node_modules/
 __pycache__/
 *.pyc
-*.pyo
-veda-env/
-*.pdf
-.pytest_cache/
+.env
+token.pkl
+*.log
