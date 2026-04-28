@@ -48,7 +48,7 @@ MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8001")
 # ── Agent timeouts (seconds) ──────────────────────────────────────────────────
 AGENT_TIMEOUT_CODE       = int(os.getenv("AGENT_TIMEOUT_CODE",       "120"))
 AGENT_TIMEOUT_REGULATORY = int(os.getenv("AGENT_TIMEOUT_REGULATORY", "90"))
-AGENT_TIMEOUT_MARKET     = int(os.getenv("AGENT_TIMEOUT_MARKET",     "90"))
+AGENT_TIMEOUT_MARKET = int(os.getenv("AGENT_TIMEOUT_MARKET", "180"))
 AGENT_TIMEOUT_SUMMARY    = int(os.getenv("AGENT_TIMEOUT_SUMMARY",    "60"))
 
 # ── Secrets (Secret Manager → env fallback) ───────────────────────────────────

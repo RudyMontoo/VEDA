@@ -140,6 +140,7 @@ async def auth_callback(request: Request):
         httponly=True,
         max_age=60 * 60 * 8,
         samesite="lax",
+        secure=False,
     )
     return response
 
