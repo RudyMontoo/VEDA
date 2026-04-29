@@ -11,13 +11,20 @@ from utils.config import PROJECT_ID
 logger = logging.getLogger(__name__)
 
 # Document AI processor — uses pre-trained OCR processor
-_PROCESSOR_ID     = os.getenv("DOCUMENT_AI_PROCESSOR_ID", "")
+import os
+_PROCESSOR_ID = os.getenv("DOCUMENT_AI_PROCESSOR_ID", "")
 _PROCESSOR_REGION = "us"
 
 import os
 
 def parse_pitch_deck(pdf_bytes: bytes) -> dict:
     """
+import os
+import re
+import logging
+from typing import Optional
+from utils.config import PROJECT_ID
+
     Extract structured data from a PDF pitch deck.
     Returns company name, industry, financials, problem/solution.
     """
@@ -73,7 +80,7 @@ def _parse_fields(text: str) -> dict:
     return {
         "company_name":          _extract_company_name(text, lines),
         "industry":              _extract_industry(text),
-        "description":           _extract_description(text, lines),
+        "description":           _extract_section(text, ["solution", "product", "platform"]),
         "problem":               _extract_section(text, ["problem", "challenge", "pain point"]),
         "solution":              _extract_section(text, ["solution", "product", "platform"]),
         "revenue_inr_lakhs":     _extract_revenue(text),

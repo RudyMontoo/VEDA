@@ -17,3 +17,4 @@ starlette
 python-multipart
 pypdf
 google-cloud-language
+python-multipart
