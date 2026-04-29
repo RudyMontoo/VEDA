@@ -15,3 +15,5 @@ authlib
 itsdangerous
 starlette
 python-multipart
+pypdf
+google-cloud-language

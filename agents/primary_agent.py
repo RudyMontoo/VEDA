@@ -207,6 +207,9 @@ class PrimaryAgent:
                 "competitor_intelligence": competitor_results,
                 "news_sentiment":          news_results,
                 "completed_at":            datetime.utcnow().isoformat(),
+                "deal_intelligence":       await self._compute_deal_intelligence(
+                    job_id, summary_results, code_results, reg_results, market_results
+                ),
             }
 
             self.bq.save_report(job_id, report)
@@ -340,4 +343,47 @@ class PrimaryAgent:
             )
         except Exception as exc:
             logger.warning("[PrimaryAgent] News sentiment failed (non-fatal): %s", exc)
+            return {}
+
+    async def _compute_deal_intelligence(
+        self, job_id, summary_results, code_results, reg_results, market_results
+    ) -> dict:
+        """Compute deal intelligence — sentiment, investment score, embeddings."""
+        try:
+            from utils.sentiment_engine  import analyze_sentiment
+            from utils.investment_scorer import compute_investment_score
+            from utils.embeddings_engine import store_startup_embedding
+
+            summary_text = summary_results.get("executive_summary", "") or \
+                           summary_results.get("one_line_verdict", "")
+
+            sentiment = analyze_sentiment(summary_text) if summary_text else \
+                        {"score": 0, "magnitude": 0, "label": "NEUTRAL"}
+
+            investment = compute_investment_score(
+                tech_debt_score     = code_results.get("tech_debt_score", 50),
+                compliance_score    = reg_results.get("compliance_score", 50),
+                market_fit_score    = market_results.get("market_fit_score", 50),
+                sentiment_score     = sentiment["score"],
+                sentiment_magnitude = sentiment["magnitude"],
+                pitch_text          = summary_text,
+            )
+
+            # Store embedding for future similarity search (non-blocking)
+            asyncio.get_event_loop().run_in_executor(None, store_startup_embedding,
+                job_id,
+                summary_results.get("job_id", job_id),
+                "unknown",
+                summary_text,
+                {"tech": code_results.get("tech_debt_score"),
+                 "compliance": reg_results.get("compliance_score"),
+                 "market": market_results.get("market_fit_score")},
+            )
+
+            logger.info("[PrimaryAgent] Deal intelligence: score=%d grade=%s",
+                investment["investment_score"], investment["grade"])
+            return {"sentiment": sentiment, **investment}
+
+        except Exception as exc:
+            logger.warning("[PrimaryAgent] Deal intelligence failed (non-fatal): %s", exc)
             return {}

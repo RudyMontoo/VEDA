@@ -479,3 +479,205 @@ def get_audit_history(limit: int = 20, user: dict = Depends(require_user)):
         return {"history": history, "total": len(history)}
     except Exception as e:
         return {"history": [], "total": 0, "error": str(e)}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DEAL INTELLIGENCE LAYER — 5 new endpoints
+# ══════════════════════════════════════════════════════════════════════════════
+
+import io as _io
+from fastapi import UploadFile, File as _File
+
+# ── 1. Pitch Deck Auto Audit ──────────────────────────────────────────────────
+@app.post("/pitch-deck/parse")
+async def parse_pitch_deck_endpoint(
+    file: UploadFile = _File(...),
+    user: dict = Depends(require_user),
+):
+    """
+    Upload a PDF pitch deck → extract structured startup data.
+    Returns pre-filled audit form fields.
+    """
+    from utils.pitch_deck_parser import parse_pitch_deck
+    try:
+        pdf_bytes = await file.read()
+        if not pdf_bytes:
+            raise HTTPException(status_code=400, detail="Empty file")
+        extracted = parse_pitch_deck(pdf_bytes)
+        return {
+            "success":   True,
+            "extracted": extracted,
+            "form_fields": {
+                "company_name":   extracted.get("company_name", ""),
+                "industry":       extracted.get("industry", "saas"),
+                "description":    extracted.get("description") or extracted.get("solution", ""),
+                "github_url":     extracted.get("github_url", ""),
+            },
+            "financial_signals": {
+                "revenue_inr_lakhs": extracted.get("revenue_inr_lakhs"),
+                "growth_rate_pct":   extracted.get("growth_rate_pct"),
+                "team_size":         extracted.get("team_size"),
+                "funding_stage":     extracted.get("funding_stage"),
+            },
+            "confidence": extracted.get("extraction_confidence", "LOW"),
+        }
+    except Exception as exc:
+        logger.error("[PitchDeck] Parse failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ── 2. News Sentiment Engine ──────────────────────────────────────────────────
+class SentimentRequest(BaseModel):
+    text: str
+
+@app.post("/sentiment/analyze")
+async def analyze_sentiment_endpoint(
+    request: SentimentRequest,
+    user: dict = Depends(require_user),
+):
+    """
+    Analyze sentiment using Google Cloud Natural Language API.
+    Input: text string
+    Output: score (-1 to +1), magnitude, label
+    """
+    from utils.sentiment_engine import analyze_sentiment
+    if not request.text.strip():
+        raise HTTPException(status_code=400, detail="Text cannot be empty")
+    result = analyze_sentiment(request.text)
+    return {"success": True, "sentiment": result}
+
+
+# ── 3. Startup Embeddings + Similarity ───────────────────────────────────────
+class SimilarityRequest(BaseModel):
+    summary: str
+    top_k: Optional[int] = 3
+
+@app.post("/embeddings/similar")
+async def find_similar_startups_endpoint(
+    request: SimilarityRequest,
+    user: dict = Depends(require_user),
+):
+    """
+    Find similar startups using Vertex AI embeddings + cosine similarity.
+    Input: startup summary text
+    Output: top-k similar startups from past audits
+    """
+    from utils.embeddings_engine import find_similar_startups
+    if not request.summary.strip():
+        raise HTTPException(status_code=400, detail="Summary cannot be empty")
+    similar = find_similar_startups(request.summary, top_k=request.top_k)
+    return {"success": True, "similar_startups": similar, "count": len(similar)}
+
+
+@app.post("/embeddings/store/{job_id}")
+async def store_embedding_endpoint(
+    job_id: str,
+    user: dict = Depends(require_user),
+):
+    """Store embedding for a completed audit."""
+    from utils.embeddings_engine import store_startup_embedding
+    report = bq.get_report(job_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    exec_s  = report.get("executive_summary", {})
+    summary = exec_s.get("executive_summary") or exec_s.get("one_line_verdict", "")
+    scores  = {
+        "tech_debt":   report.get("code_audit", {}).get("tech_debt_score"),
+        "compliance":  report.get("regulatory", {}).get("compliance_score"),
+        "market_fit":  report.get("market_forecast", {}).get("market_fit_score"),
+        "overall":     report.get("overall_risk_score"),
+    }
+    stored = store_startup_embedding(
+        job_id       = job_id,
+        company_name = report.get("company_name", ""),
+        industry     = report.get("industry", ""),
+        summary      = summary,
+        scores       = scores,
+    )
+    return {"success": stored, "job_id": job_id}
+
+
+# ── 4. Auto Investment Score ──────────────────────────────────────────────────
+class InvestmentScoreRequest(BaseModel):
+    tech_debt_score:    float
+    compliance_score:   float
+    market_fit_score:   float
+    sentiment_text:     Optional[str] = ""
+    financial_signals:  Optional[dict] = None
+    pitch_text:         Optional[str] = ""
+
+@app.post("/intelligence/score")
+async def compute_investment_score_endpoint(
+    request: InvestmentScoreRequest,
+    user: dict = Depends(require_user),
+):
+    """
+    Compute Auto Investment Score (0-100).
+    Combines tech, compliance, market, sentiment, financial signals, keywords.
+    """
+    from utils.sentiment_engine   import analyze_sentiment
+    from utils.investment_scorer  import compute_investment_score
+
+    # Get sentiment from text if provided
+    sentiment = {"score": 0.0, "magnitude": 0.0}
+    if request.sentiment_text:
+        sentiment = analyze_sentiment(request.sentiment_text)
+
+    result = compute_investment_score(
+        tech_debt_score      = request.tech_debt_score,
+        compliance_score     = request.compliance_score,
+        market_fit_score     = request.market_fit_score,
+        sentiment_score      = sentiment["score"],
+        sentiment_magnitude  = sentiment["magnitude"],
+        pitch_text           = request.pitch_text or "",
+        financial_signals    = request.financial_signals,
+    )
+    return {"success": True, **result, "sentiment_used": sentiment}
+
+
+# ── 5. Deal Intelligence Layer — Combined endpoint ────────────────────────────
+@app.get("/intelligence/report/{job_id}")
+async def get_deal_intelligence(
+    job_id: str,
+    user: dict = Depends(require_user),
+):
+    """
+    Full Deal Intelligence for a completed audit.
+    Returns: investment_score, sentiment, similar_startups, grade.
+    """
+    from utils.sentiment_engine   import analyze_sentiment
+    from utils.investment_scorer  import compute_investment_score
+    from utils.embeddings_engine  import find_similar_startups
+
+    report = bq.get_report(job_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    exec_s  = report.get("executive_summary", {})
+    summary = exec_s.get("executive_summary") or exec_s.get("one_line_verdict", "")
+
+    # Sentiment on executive summary
+    sentiment = analyze_sentiment(summary) if summary else {"score": 0, "magnitude": 0, "label": "NEUTRAL"}
+
+    # Investment score
+    investment = compute_investment_score(
+        tech_debt_score     = report.get("code_audit", {}).get("tech_debt_score", 50),
+        compliance_score    = report.get("regulatory", {}).get("compliance_score", 50),
+        market_fit_score    = report.get("market_forecast", {}).get("market_fit_score", 50),
+        sentiment_score     = sentiment["score"],
+        sentiment_magnitude = sentiment["magnitude"],
+        pitch_text          = summary,
+    )
+
+    # Similar startups
+    similar = find_similar_startups(summary, top_k=3) if summary else []
+
+    return {
+        "job_id":          job_id,
+        "company_name":    report.get("company_name"),
+        "sentiment":       sentiment,
+        "investment":      investment,
+        "similar_startups": similar,
+        "generated_at":    datetime.utcnow().isoformat(),
+    }

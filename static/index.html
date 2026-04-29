@@ -499,6 +499,17 @@ select.field-input option { background: var(--bg3); }
 .form-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 0.8rem; }
 
 /* ── Responsive ── */
+/* Deal Intelligence */
+.di-panel { background:var(--bg1); border:1px solid rgba(251,191,36,0.2); border-radius:16px; padding:1.8rem; margin-bottom:1.2rem; }
+.di-score-big { font-family:"JetBrains Mono",monospace; font-size:4rem; font-weight:700; line-height:1; }
+.di-grade { font-family:"JetBrains Mono",monospace; font-size:1.2rem; font-weight:700; margin-left:0.5rem; }
+.di-row { display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid var(--border); font-size:0.82rem; }
+.di-row:last-child { border-bottom:none; }
+.di-bar-track { background:var(--bg2); border-radius:999px; height:4px; flex:1; margin:0 0.8rem; }
+.di-bar-fill { height:100%; border-radius:999px; background:linear-gradient(90deg,var(--yellow),var(--green)); }
+.similar-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.8rem; margin-top:0.8rem; }
+.similar-tile { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:0.9rem; }
+.sim-pct { font-family:"JetBrains Mono",monospace; font-size:1.1rem; font-weight:700; color:var(--cyan); }
 @media(max-width:700px) {
   .form-grid, .score-row, .chart-row, .forecast-row,
   .compare-cols, .cmp-grid, .comp-grid { grid-template-columns: 1fr; }
@@ -689,6 +700,28 @@ select.field-input option { background: var(--bg3); }
       </div>
       <div class="task-toast ok"  id="task-success">✅ Task added to Google Calendar!</div>
       <div class="task-toast err" id="task-error">❌ Failed to add task.</div>
+    </div>
+
+    <!-- Deal Intelligence Panel -->
+    <div class="di-panel" id="di-panel" style="display:none;">
+      <div class="panel-label">💡 Deal Intelligence</div>
+      <div style="display:flex;align-items:center;margin-bottom:1.2rem;">
+        <div>
+          <div style="font-family:JetBrains Mono,monospace;font-size:0.62rem;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:0.3rem;">Investment Score</div>
+          <div style="display:flex;align-items:baseline;gap:0.5rem;">
+            <div class="di-score-big" id="di-score">—</div>
+            <div class="di-grade" id="di-grade"></div>
+          </div>
+          <div id="di-recommendation" style="font-family:JetBrains Mono,monospace;font-size:0.7rem;letter-spacing:1.5px;margin-top:0.3rem;text-transform:uppercase;"></div>
+        </div>
+        <div style="flex:1;margin-left:2rem;">
+          <div id="di-breakdown"></div>
+        </div>
+      </div>
+      <div id="di-similar-section" style="display:none;">
+        <div class="panel-label" style="margin-bottom:0.8rem;">Similar Past Deals</div>
+        <div class="similar-grid" id="di-similar-grid"></div>
+      </div>
     </div>
 
     <div style="text-align:center;margin-top:0.8rem;margin-bottom:2rem;">
