@@ -390,8 +390,10 @@ All secrets stored in **Google Cloud Secret Manager** — not in environment var
 ## Credits Used
 
 - **$1,000 GenAI App Builder credit** — Vertex AI Search (Discovery Engine)
-- All other services within **free tier** (BigQuery 10GB, Cloud Run 2M req/month, Vertex AI free quota)
-- **Total spend: ~$0**
+- **Vertex AI Gemini 2.5 Flash** — per-call token cost (minimal at hackathon scale)
+- **Natural Language API** — per-call cost for sentiment scoring
+- **Vertex AI Embeddings** — per-call cost for similarity search
+- BigQuery, Cloud Run, Cloud Logging, Secret Manager — within free tier
 
 ---
 
